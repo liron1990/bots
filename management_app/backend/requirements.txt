@@ -1,0 +1,4 @@
+Flask
+flask-cors
+PyYAML
+PyJWT

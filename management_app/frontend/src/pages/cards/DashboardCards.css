@@ -1,0 +1,68 @@
+/* Common beautiful button style */
+.common-btn, .yaml-save-btn, button {
+  background: linear-gradient(90deg, #4a90e2 0%, #357ab8 100%);
+  color: #fff !important;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.08rem;
+  font-weight: 500;
+  padding: 0.6rem 1.5rem;
+  cursor: pointer;
+  margin: 0 0.25rem;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(74,144,226,0.08);
+  outline: none;
+}
+
+/* Tab button default (inactive) style */
+.dashboard-tab {
+  background: none !important;
+  color: #2a3b4c !important;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-weight: 400;
+  font-size: 1.1rem;
+  padding: 0.5rem 1.5rem;
+  cursor: pointer;
+  outline: none;
+  transition: border 0.2s, color 0.2s;
+}
+
+/* Tab button hover */
+.dashboard-tab:hover {
+  color: #4a90e2 !important;
+  background: #eaf3fb !important;
+}
+
+/* Tab button active style */
+.dashboard-tab.active {
+  border-bottom: 3px solid #4a90e2 !important;
+  color: #4a90e2 !important;
+  background: #eaf3fb !important;
+  font-weight: 600;
+}
+
+.dashboard-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 2rem 1.5rem;
+  min-width: 300px;
+  max-width: 350px;
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 1rem;
+}
+
+.page-container {
+  width: 100vw;
+  min-height: calc(100vh - 60px);
+  background: #fff;
+  padding: 2rem 4vw 1.5rem 4vw;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-sizing: border-box;
+}

@@ -1,0 +1,15 @@
+{
+    "GREEN_API_INSTANCE_ID": "7103232247",
+    "GREEN_API_TOKEN_ID": "060f3be9fdb94edfb515b39320110ec79381b7fe9a354bb98d",
+    "TOR_KEY": "4590-RmKWX2d7NCX9sPsnHJ4xTPBdkJvQdPVf2C6THr2VkmVCVnsDGCQ2QQgGldCrk91u",
+    "IS_DEBUG": true,
+    "DEVLOPERS": [
+        "972549451721"
+    ],
+    "FILTER_WEB_HOOKS": {
+        "customercell":  ["0501111111", "0555555555"],
+        "cell":  ["0501111111", "0555555555"]
+    },
+    "REMINDER_MSG_TIME_BEFORE_HOURS": 24,
+    "THANKS_MSG_TIME_AFTER_HOURS": 1.75
+}
