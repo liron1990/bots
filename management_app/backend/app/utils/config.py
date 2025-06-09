@@ -14,8 +14,3 @@ class Config:
         self.FILTER_WEB_HOOKS = self._config.get("FILTER_WEB_HOOKS", {})
         self.REMINDER_MSG_TIME_BEFORE_HOURS = float(self._config.get("REMINDER_MSG_TIME_BEFORE_HOURS"))
         self.THANKS_MSG_TIME_AFTER_HOURS = float(self._config.get("THANKS_MSG_TIME_AFTER_HOURS"))
-
-# Usage:
-# from config import Config
-# config = Config()
-# print(config.REMINDER_TIME_BEFORE_HOURS)

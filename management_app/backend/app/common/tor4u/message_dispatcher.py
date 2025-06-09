@@ -2,18 +2,19 @@ import os
 import json
 import threading
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo  # Python 3.9+
 import glob
+import pytz
 
 from whatsapp_api_client_python import API
-from utils.config import Config
-from utils.utils import normalize_whatsapp_number
-from utils.logger import logger
+from app.webapp.config import Config
+from app.utils.utils import normalize_whatsapp_number
+from app.utils.logger import logger
 from .constants import SENT_FILE
 import time
 from .utils import should_filter, enrich_appointment_data, get_template_messages
-from config_yaml_manager import ConfigYamlManager
+from app.common.config_yaml_manager import ConfigYamlManager
 
-thread_started = False
 
 class MessageDispatcher:
     def __init__(self, api: API.GreenAPI, yaml_manager: ConfigYamlManager):
@@ -22,16 +23,18 @@ class MessageDispatcher:
         self._tasks = {}  # key: "{id}_before"/"{id}_after", value: dict with message, number, send_time, etc.
         self._sent_tasks = self._load_sent_tasks()  # Now a set of sent keys
         self._lock = threading.Lock()
-        self._start_task_thread()
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._task_loop, daemon=True)
+        self._thread.start()
 
-    def _start_task_thread(self):
-        global thread_started
-        if not thread_started:
-            threading.Thread(target=self._task_loop, daemon=True).start()
+    def stop(self):
+        self._stop_event.set()
+        self._thread.join()
 
     def _task_loop(self):
-        while True:
-            now = datetime.now()
+        israel_tz = pytz.timezone("Asia/Jerusalem")
+        while not self._stop_event.is_set():
+            now = datetime.now(israel_tz)
             to_send = []
             with self._lock:
                 # Find due tasks, but ignore if more than 10 minutes late
@@ -49,7 +52,7 @@ class MessageDispatcher:
             # Send messages outside the lock
             for key, task in to_send:
                 self._send_task(key, task)
-            time.sleep(30)
+            self._stop_event.wait(30)
 
     def _sent_file_for_today(self):
         today = datetime.now().strftime("%Y%m%d")
@@ -126,8 +129,9 @@ class MessageDispatcher:
 
         appt = enrich_appointment_data(appt)
         try:
-            from_dt = datetime.strptime(appt["from"], "%Y%m%d%H%M")
-            to_dt = datetime.strptime(appt["to"], "%Y%m%d%H%M")
+            israel_tz = pytz.timezone("Asia/Jerusalem")
+            from_dt = israel_tz.localize(datetime.strptime(appt["from"], "%Y%m%d%H%M"))
+            to_dt = israel_tz.localize(datetime.strptime(appt["to"], "%Y%m%d%H%M"))
         except Exception as e:
             logger.warning("Invalid datetime in appt: %s", e)
             return

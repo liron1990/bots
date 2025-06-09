@@ -1,12 +1,9 @@
-import os
 import threading
 from datetime import datetime, timedelta
 
 import requests
 from .constants import API_URL, TORKEY
-from utils.logger import logger
-
-thread_started = False
+from app.utils.logger import logger
 
 class AppointmentFetcher:
     def __init__(self, on_new_appointments, interval=7200):
@@ -15,12 +12,9 @@ class AppointmentFetcher:
         self.test_mode = False
         self._stop_event = threading.Event()
         self._lu = None  # Maintain LU in memory, not file
-        self._start_threads()
+        self._thread = threading.Thread(target=self._fetch_loop, daemon=True)
+        self._thread.start()
 
-    def _start_threads(self):
-        global thread_started
-        if not thread_started:
-            threading.Thread(target=self._fetch_loop, daemon=True).start()
 
     def _fetch_loop(self):
         last_day = None
@@ -71,3 +65,4 @@ class AppointmentFetcher:
 
     def stop(self):
         self._stop_event.set()
+        self._thread.join()

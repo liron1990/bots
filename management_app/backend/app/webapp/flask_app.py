@@ -4,14 +4,14 @@ from flask_cors import CORS
 import yaml
 import os
 import json
-from config_yaml_manager import ConfigYamlManager
+from app.common.config_yaml_manager import ConfigYamlManager
 import atexit
+from app.common.tor4u.webhook_handler import WebhookHandler
+from users.app_config import AppConfig
+from .auth import auth_bp, jwt_required, get_user_id_from_request
 
-
-from auth import auth_bp, jwt_required, get_user_id_from_request
-
-app = Flask(__name__, static_folder='../frontend/dist')
-CORS(app)
+flask_app = Flask(__name__, static_folder='../frontend/dist')
+CORS(flask_app)
 
 USER_DATA_DIR = Path(__file__).parent / "user_data"
 
@@ -24,44 +24,44 @@ def get_user_dir():
     return user_dir
 
 # Register JWT-based auth routes
-app.register_blueprint(auth_bp, url_prefix="/api")
+flask_app.register_blueprint(auth_bp, url_prefix="/api")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 YAML_PATH = os.path.join(BASE_DIR, "data.yml")
 
-config_yaml_manager = ConfigYamlManager(CONFIG_PATH, YAML_PATH)
-# webhook_handler = Tor4YouWebhookHandler(config_yaml_manager)
-from tor4u.tor4u_service import Tor4YouService
-tor4you_service = Tor4YouService(config_yaml_manager)
+app_config = AppConfig("the_maze")
 
-@app.route('/webhook_fdw53etvn5ekndfetthg52cc352h97wps5', methods=['POST', 'GET'])
+config_yaml_manager = ConfigYamlManager(app_config.config_path, app_config.data_yaml_path)
+webhook_handler = WebhookHandler(config_yaml_manager)
+
+@flask_app.route('/webhook_fdw53etvn5ekndfetthg52cc352h97wps5', methods=['POST', 'GET'])
 def tor4you_webhook():
     data = request.get_json(silent=True)
-    return tor4you_service.handle_webhook(data)
+    return webhook_handler.handle(data)
 
-@app.route('/api/logout', methods=['POST'])
+@flask_app.route('/api/logout', methods=['POST'])
 def logout():
     # Frontend should simply delete the token from storage
     return jsonify({'success': True})
 
-@app.route('/api/protected')
+@flask_app.route('/api/protected')
 @jwt_required
 def protected():
     user = get_user_id_from_request()
     return jsonify({'data': f'Secret data for {user} only'})
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+@flask_app.route('/', defaults={'path': ''})
+@flask_app.route('/<path:path>')
 def serve(path):
-    file_path = Path(app.static_folder) / path
+    file_path = Path(flask_app.static_folder) / path
     if path != "" and file_path.exists():
-        return send_from_directory(app.static_folder, path)
+        return send_from_directory(flask_app.static_folder, path)
     else:
-        return send_from_directory(app.static_folder, 'index.html')
+        return send_from_directory(flask_app.static_folder, 'index.html')
 
 
-@app.route('/api/yaml', methods=['GET'])
+@flask_app.route('/api/yaml', methods=['GET'])
 @jwt_required
 def get_yaml_as_json():
     user_dir = get_user_dir()
@@ -77,7 +77,7 @@ def get_yaml_as_json():
         return jsonify({'error': str(e)}), 400
 
 
-@app.route('/api/yaml', methods=['POST'])
+@flask_app.route('/api/yaml', methods=['POST'])
 @jwt_required
 def update_yaml_from_json():
     user_dir = get_user_dir()
@@ -132,7 +132,7 @@ def update_yaml_from_json():
         return jsonify({'error': str(e)}), 400
 
 
-@app.route('/api/prompt', methods=['GET', 'POST'])
+@flask_app.route('/api/prompt', methods=['GET', 'POST'])
 @jwt_required
 def prompt_file():
     user_dir = get_user_dir()
@@ -149,7 +149,7 @@ def prompt_file():
         path.write_text(prompt, encoding='utf-8')
         return jsonify({'success': True})
 
-@app.route('/api/settings', methods=['GET', 'POST'])
+@flask_app.route('/api/settings', methods=['GET', 'POST'])
 @jwt_required
 def user_settings():
     user_dir = get_user_dir()
@@ -168,7 +168,3 @@ def user_settings():
 @atexit.register
 def shutdown():
     config_yaml_manager.stop()
-
-
-if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from utils.config import Config
+from app.webapp.config import Config
 from typing import Dict, Any
 
 
@@ -37,8 +37,6 @@ def get_template_messages(data, templates):
 
 def should_filter(data: Dict[str, Any], config: Config) -> bool:
     if 'tmp_expire_date' in data and data['tmp_expire_date']:
-        from utils.logger import logger
-        logger.info(f"Filtering out webhook due to tmp_expire_date: {data['tmp_expire_date']}")
         return True
 
     for k, v in config.FILTER_WEB_HOOKS.items():

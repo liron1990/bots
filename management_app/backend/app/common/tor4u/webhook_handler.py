@@ -1,15 +1,17 @@
-from utils.config import Config
-from utils.logger import logger
-from .message_dispatcher import MessageDispatcher
-from datetime import datetime
-from utils.utils import create_ics_file, normalize_whatsapp_number
-from config_yaml_manager import ConfigYamlManager
+from app.utils.logger import logger
+from app.utils.utils import create_ics_file, normalize_whatsapp_number
+from app.common.config_yaml_manager import ConfigYamlManager
 from .utils import get_template_messages, enrich_appointment_data, should_filter
 
+from whatsapp_api_client_python.API import GreenApi
+from whatsapp_api_client_python import API
+from app.webapp.config import Config
+
 class WebhookHandler:
-    def __init__(self, dispatcher: MessageDispatcher, yaml_manager: ConfigYamlManager):
-        self.dispatcher = dispatcher
-        self.yaml_manager = yaml_manager
+    def __init__(self, yaml_manager: ConfigYamlManager):
+        config = yaml_manager.get_config()
+        self.green_api: GreenApi = API.GreenAPI(config.GREEN_API_INSTANCE_ID, config.GREEN_API_TOKEN_ID)
+        self.yaml_manager: ConfigYamlManager = yaml_manager
 
     def handle(self, data):
         if not data:
@@ -17,7 +19,7 @@ class WebhookHandler:
             return "No JSON", 400
 
         try:
-            config = self.yaml_manager.get_config()
+            config: Config = self.yaml_manager.get_config()
             templates = self.yaml_manager.get_yaml()
 
             if should_filter(data, config):
@@ -30,7 +32,7 @@ class WebhookHandler:
             if not action:
                 return "Unknown action", 400
 
-            template = get_template_messages(data, template)
+            template = get_template_messages(data, templates)
             msg = template[action].format(**data)
             caption = templates["calendar_attachment"].format(**data)
 
@@ -39,15 +41,15 @@ class WebhookHandler:
 
             for num in dests:
                 jid = f"{num}@c.us"
-                self.dispatcher.api.sending.sendMessage(jid, msg)
+                self.green_api.sending.sendMessage(jid, msg)
                 if action in {"create", "update"}:
                     path = create_ics_file(data, template["calander"])
-                    self.dispatcher.api.sending.sendFileByUpload(jid, path, "escape_room_event.ics", caption=caption)
+                    self.green_api.sending.sendFileByUpload(jid, path, "escape_room_event.ics", caption=caption)
 
             return "OK", 200
 
         except Exception as e:
             logger.exception("Webhook processing failed")
             for num in self.yaml_manager.get_config().DEVLOPERS:
-                self.dispatcher.api.sending.sendMessage(f"{num}@c.us", f"❌ Error:\n{e}")
+                self.green_api.sending.sendMessage(f"{num}@c.us", f"❌ Error:\n{e}")
             return "Error", 500
