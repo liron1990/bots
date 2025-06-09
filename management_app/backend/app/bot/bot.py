@@ -4,9 +4,6 @@ import time
 import threading
 
 from concurrent.futures import ThreadPoolExecutor
-
-# Create a thread pool with a reasonable number of threads
-executor = ThreadPoolExecutor(max_workers=10)
 from typing import List, Optional
 from whatsapp_api_client_python import API
 from whatsapp_chatbot_python import GreenAPIBot, Notification
@@ -14,10 +11,10 @@ from whatsapp_chatbot_python.filters import TEXT_TYPES
 from whatsapp_chatgpt_python import WhatsappGptBot
 from yaml import safe_load
 
-from internal.GptProcess import GPTProcessingContext
-from internal.config import load_config, Config
-from internal.logger import init_logger
-from internal.utils import (
+from .internal.GptProcess import GPTProcessingContext
+from .internal.config import load_config, Config
+from .internal.logger import init_logger
+from .internal.utils import (
     LANGUAGE_CODE_KEY,
     States,
     debug_profiler,
