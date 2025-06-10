@@ -161,6 +161,44 @@ def debug_profiler(logger: Logger):
     return outer
 
 
+def log_interaction(logger: Logger):
+    """
+    Simple decorator for sending some usefull
+    logs into debug logger. Only for local dev.
+    """
+
+    def outer(func: Callable):
+
+        def inner(*args, **kwargs):
+
+            start_timestamp = time()
+            notification: Notification = args[0]
+            logger.debug(f"{notification.sender} sent {notification.message_text}")
+            logger.debug(
+                "Notification storage: (before handling): "
+                f"{notification.state_manager.storage}"
+            )
+
+            result = func(*args, **kwargs)
+
+            logger.debug(
+                "Notification storage: (after handling): "
+                f"{notification.state_manager.storage}"
+            )
+
+            finish_timestamp = time()
+            t = finish_timestamp - start_timestamp
+
+            logger.debug(
+                f"Seconds for processing request ({func.__name__}): {round(t, 3)}"
+            )
+
+            return result
+
+        return inner
+
+    return outer
+
 def get_first_name(name: str) -> str:
     if not name:
         return ""

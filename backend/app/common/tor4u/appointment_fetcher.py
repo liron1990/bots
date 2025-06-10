@@ -12,7 +12,7 @@ class AppointmentFetcher:
         self.test_mode = False
         self._stop_event = threading.Event()
         self._lu = None  # Maintain LU in memory, not file
-        self._thread = threading.Thread(target=self._fetch_loop, daemon=True)
+        self._thread = threading.Thread(target=self._fetch_loop, daemon=True, name=self.__class__.__name__)
         self._thread.start()
 
 

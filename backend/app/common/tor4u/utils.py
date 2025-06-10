@@ -1,7 +1,7 @@
 from datetime import datetime
 from app.webapp.config import Config
 from typing import Dict, Any
-
+from app.utils.logger import logger
 
 def enrich_appointment_data(data):
     """Returns a new dict with date_str, time_str, and stripped staffname."""
@@ -37,9 +37,11 @@ def get_template_messages(data, templates):
 
 def should_filter(data: Dict[str, Any], config: Config) -> bool:
     if 'tmp_expire_date' in data and data['tmp_expire_date']:
+        logger.info("Filtered out appointments based on config")
         return True
 
     for k, v in config.FILTER_WEB_HOOKS.items():
         if k in data and data[k] in v:
+            logger.info(f"Filtered out appointment by key {k} with value {data[k]}")
             return True
     return False

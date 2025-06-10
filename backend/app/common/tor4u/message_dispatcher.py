@@ -2,7 +2,6 @@ import os
 import json
 import threading
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo  # Python 3.9+
 import glob
 import pytz
 
@@ -11,7 +10,6 @@ from app.webapp.config import Config
 from app.utils.utils import normalize_whatsapp_number
 from app.utils.logger import logger
 from .constants import SENT_FILE
-import time
 from .utils import should_filter, enrich_appointment_data, get_template_messages
 from app.common.config_yaml_manager import ConfigYamlManager
 
@@ -24,7 +22,7 @@ class MessageDispatcher:
         self._sent_tasks = self._load_sent_tasks()  # Now a set of sent keys
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._task_loop, daemon=True)
+        self._thread = threading.Thread(target=self._task_loop, daemon=True, name=self.__class__.__name__)
         self._thread.start()
 
     def stop(self):
@@ -111,11 +109,10 @@ class MessageDispatcher:
 
 
     def handle_new_appointments(self, appointments):
-        config = self.config_manager.get_config()
-        logger.info(f"Received new appointments: {appointments}")
+        config = self.config_manager.get_config() 
+        logger.info(f"Received new appointments")
         for appt in appointments:
             if should_filter(appt, config):
-                logger.info("Filtered out appointments based on config")
                 continue
             self._schedule(appt, config)
         for key, task in self._tasks.items():

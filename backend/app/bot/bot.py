@@ -10,34 +10,28 @@ from whatsapp_chatbot_python import GreenAPIBot, Notification
 from whatsapp_chatbot_python.filters import TEXT_TYPES
 from whatsapp_chatgpt_python import WhatsappGptBot
 from yaml import safe_load
+from users.app_config import AppConfig
 
 from .internal.GptProcess import GPTProcessingContext
 from .internal.config import load_config, Config
-from .internal.logger import init_logger
+from app.utils.logger import logger
 from .internal.utils import (
     LANGUAGE_CODE_KEY,
     States,
-    debug_profiler,
+    log_interaction,
     sender_state_data_updater,
     get_first_name, LAST_INTERACTION_KEY, get_state, get_sender_printable, send_lead_to_biz1,
 )
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-YAML_DATA_RELATIVE_PATH = os.path.join(BASE_DIR, "config", "data.yml")
-PROMPT_PATH = os.path.join(BASE_DIR, "config", "prompt.txt")
-PARAMS_PATH = os.path.join(BASE_DIR, "config", "params.json")
+app_config = AppConfig("the_maze", "bot")
 RELOAD_INTERVAL = 10
 
-logger = init_logger(debug=True)
-config: Config = load_config(PARAMS_PATH)
+config: Config = load_config(str(app_config.user_data_path / "params.json"))
 
-with open(YAML_DATA_RELATIVE_PATH, encoding="utf8") as f:
+with open(str(app_config.user_data_path / "data.yml"), encoding="utf8") as f:
     answers_data = safe_load(f)
 
 
-with open(PROMPT_PATH, encoding="utf8") as f:
-     prompt = f.read()
+prompt = app_config.user_data_path.joinpath("prompt.txt").read_text(encoding="utf8")
 
 gpt_bot = WhatsappGptBot(
     id_instance=config.user_id,
@@ -73,7 +67,7 @@ in_chat = {}
 
 
 @bot.router.message(type_message=TEXT_TYPES, state=None)
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def initial_handler(notification: Notification) -> None:
     """
     Initial handler for new senders without any state
@@ -111,7 +105,7 @@ def initial_handler(notification: Notification) -> None:
     type_message=TEXT_TYPES,
     text_message=["0"]
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def main_menu_menu_handler(notification: Notification) -> None:
     """
     Menu command handler for senders with `MENU` state.
@@ -129,7 +123,7 @@ def main_menu_menu_handler(notification: Notification) -> None:
     state=States.MENU.value,
     regexp=r"^\s*([1-6])\s*$",
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def main_menu_generic_handler(notification: Notification) -> None:
     """
     Handles menu options 1–6 for users in MENU state.
@@ -154,6 +148,7 @@ def main_menu_generic_handler(notification: Notification) -> None:
     state=States.MENU.value,
     regexp=r"^\s*7\s*$",
 )
+@log_interaction(logger=logger)
 def menu_7_handler(notification: Notification) -> None:
     language_code = get_state(notification, LANGUAGE_CODE_KEY)
     set_state_and_answer_poll(
@@ -249,6 +244,7 @@ def handle_birthday_kids_3(notification: Notification, text) -> None:
 
 
 @bot.router.message(type_message=TEXT_TYPES, state=States.KIDS_WAITING_FOR_MORE_DETAILS.value)
+@log_interaction(logger=logger)
 def handle_birthday_kids_4(notification: Notification) -> None:
     set_state_and_answer(notification=notification,
                          message=build_message(notification, ["got_it_kids"]),
@@ -278,6 +274,7 @@ def handle_birthday_adults_participants(notification: Notification, text: str) -
 @bot.router.message(type_message=TEXT_TYPES, state=States.BIRTHDAY_ADULTS_MORE_DETAILS.value)
 @bot.router.message(type_message=TEXT_TYPES, state=States.TEAM_MORE_DETAILS.value)
 @bot.router.message(type_message=TEXT_TYPES, state=States.OTHER_MORE_DETAILS.value)
+@log_interaction(logger=logger)
 def handle_birthday_adults_more_details(notification: Notification) -> None:
     state_name = notification.state_manager.get_state(notification.sender).name
     sender_data = notification.event["senderData"]
@@ -384,7 +381,7 @@ def start_poll_handler(notification: Notification) -> None:
     state=States.MENU.value,
     regexp=r"^\s*8\s*$",
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def main_menu_8_handler(notification: Notification) -> None:
     """
     Handles menu options 1–8 for users in MENU state.
@@ -419,7 +416,7 @@ def main_menu_8_handler(notification: Notification) -> None:
     state=States.MENU.value,
     regexp=r"^\s*9\s*$",
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def change_language_handler(notification: Notification) -> None:
     """
     Menu command handler for senders with `MENU` state.
@@ -441,7 +438,7 @@ def change_language_handler(notification: Notification) -> None:
     state=States.CHAT_GPT.value,
     text_message=["8"]
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def human_request_handler(notification: Notification) -> None:
     """
     Menu command handler for senders with `MENU` state.
@@ -469,7 +466,7 @@ def human_request_handler(notification: Notification) -> None:
     type_message=TEXT_TYPES,
     state=States.WAITING_FOR_HUMAN_AFTER_CHAT_GPT,
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def human_request_handler(notification: Notification) -> None:
     """
     Menu command handler for senders with `MENU` state.
@@ -488,7 +485,7 @@ def human_request_handler(notification: Notification) -> None:
     state=States.MENU.value,
     regexp=(r"^(?!\s*([0-9])\s*$).*$", re.IGNORECASE)
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def main_menu_incorrect_message_handler(notification: Notification) -> None:
     """
     Handler for senders with `MENU` state.
@@ -516,7 +513,7 @@ def message_handler_outgoing(notification: Notification) -> None:
 @bot.router.message(
     state=States.CHAT_GPT.value,
 )
-@debug_profiler(logger=logger)
+@log_interaction(logger=logger)
 def chat_gpt_handler(notification: Notification) -> None:
     """
     Handler for messages in the CHAT_GPT state.
@@ -645,20 +642,22 @@ def get_mod_time(path: str) -> Optional[float]:
 
 
 def start_config_watcher(interval: int = RELOAD_INTERVAL):
-    last_config_time = get_mod_time(PARAMS_PATH)
-    last_data_time = get_mod_time(YAML_DATA_RELATIVE_PATH)
+    params_path = str(app_config.user_data_path / "params.json")
+    yaml_data_path = str(app_config.user_data_path / "data.yml")
+    last_config_time = get_mod_time(params_path)
+    last_data_time = get_mod_time(yaml_data_path)
 
     def watcher():
         global config, answers_data
         nonlocal last_config_time, last_data_time
         while True:
             time.sleep(interval)
-            current_config_time = get_mod_time(PARAMS_PATH)
-            current_data_time = get_mod_time(YAML_DATA_RELATIVE_PATH)
+            current_config_time = get_mod_time(params_path)
+            current_data_time = get_mod_time(yaml_data_path)
 
             if current_config_time and current_config_time != last_config_time:
                 try:
-                    config = load_config(PARAMS_PATH)
+                    config = load_config(params_path)
                     logger.info("Config reloaded from file.")
                     last_config_time = current_config_time
                 except Exception as e:
@@ -666,7 +665,7 @@ def start_config_watcher(interval: int = RELOAD_INTERVAL):
 
             if current_data_time and current_data_time != last_data_time:
                 try:
-                    with open(YAML_DATA_RELATIVE_PATH, encoding="utf8") as f:
+                    with open(yaml_data_path, encoding="utf8") as f:
                         answers_data = safe_load(f)
                     logger.info("answers_data reloaded from YAML.")
                     last_data_time = current_data_time

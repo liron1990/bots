@@ -5,6 +5,7 @@ from app.common.tor4u.tor4u_service import Tor4YouService
 # from app.bot.bot_service import BotService
 from app.common.config_yaml_manager import ConfigYamlManager
 from users.app_config import AppConfig
+from app.utils.logger import setup_logger, logger
 
 
 shutdown_event = threading.Event()
@@ -23,6 +24,7 @@ def handle_exit(signum, frame):
 
 if __name__ == '__main__':
     app_config = AppConfig("the_maze")
+    setup_logger("services", log_dir=app_config.products_path / "logs")
     config_yaml_manager = ConfigYamlManager(app_config.config_path, app_config.data_yaml_path)
     services = [Tor4YouService(config_yaml_manager)]
 
@@ -34,7 +36,7 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, handle_exit)
     signal.signal(signal.SIGTERM, handle_exit)
-
+    logger.info("Services started successfully.")
     print("Services started. Press Ctrl+C to stop.")
 
     try:

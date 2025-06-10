@@ -9,28 +9,26 @@ import atexit
 from app.common.tor4u.webhook_handler import WebhookHandler
 from users.app_config import AppConfig
 from .auth import auth_bp, jwt_required, get_user_id_from_request
+from app.utils.logger import setup_logger
+import logging
+
+app_config = AppConfig("the_maze")
+setup_logger(logger_name="bot", log_dir=app_config.products_path / "logs", level=logging.DEBUG)
 
 flask_app = Flask(__name__, static_folder='../frontend/dist')
 CORS(flask_app)
 
-USER_DATA_DIR = Path(__file__).parent / "user_data"
 
 def get_user_dir():
     user = get_user_id_from_request()
     if not user:
         return None
-    user_dir = USER_DATA_DIR / user
-    user_dir.mkdir(parents=True, exist_ok=True)
-    return user_dir
+    app_config.user_data_path.mkdir(parents=True, exist_ok=True)
+    return app_config.user_data_path
 
 # Register JWT-based auth routes
 flask_app.register_blueprint(auth_bp, url_prefix="/api")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
-YAML_PATH = os.path.join(BASE_DIR, "data.yml")
-
-app_config = AppConfig("the_maze")
 
 config_yaml_manager = ConfigYamlManager(app_config.config_path, app_config.data_yaml_path)
 webhook_handler = WebhookHandler(config_yaml_manager)
