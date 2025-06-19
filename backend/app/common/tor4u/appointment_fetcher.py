@@ -35,7 +35,7 @@ class AppointmentFetcher:
 
     def fetch(self, from_date, to_date):
         headers = {"torkey": TORKEY}
-        params = {"from": from_date, "to": to_date, "format": 2}
+        params = {"from": from_date, "to": to_date, "format": 2, "showcancelled": 1}
 
         if self._lu:
             params["lu"] = self._lu

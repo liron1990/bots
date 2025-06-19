@@ -1,48 +1,78 @@
 import signal
-import threading
+import multiprocessing
 from app.common.iservice import IService
 from app.common.tor4u.tor4u_service import Tor4YouService
-# from app.bot.bot_service import BotService
-from app.common.config_yaml_manager import ConfigYamlManager
+from app.bot.bot_service import BotService
 from users.app_config import AppConfig
 from app.utils.logger import setup_logger, logger
+import logging
+
+shutdown_event = multiprocessing.Event()
 
 
-shutdown_event = threading.Event()
+def run_service(service_cls, shutdown_event, *args):
+    logger.info(f"Starting service: {service_cls.__name__}")
+    app_config = AppConfig("the_maze")
+    setup_logger(service_cls.__name__, log_dir=app_config.products_path / "logs", level=logging.DEBUG)
+    service = service_cls(*args)
+    service.start()
+    try:
+        while not shutdown_event.is_set():
+            shutdown_event.wait(timeout=0.5)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        service.stop()
 
-
-def stop_services(services):
-    for service in services:
-        if isinstance(service, IService):
-            service.stop()
-
-
-def handle_exit(signum, frame):
-    print("Stopping services...")
-    shutdown_event.set()
 
 
 if __name__ == '__main__':
+    try:
+        multiprocessing.set_start_method("spawn")
+    except RuntimeError:
+        pass
+
     app_config = AppConfig("the_maze")
     setup_logger("services", log_dir=app_config.products_path / "logs")
-    config_yaml_manager = ConfigYamlManager(app_config.config_path, app_config.data_yaml_path)
-    services = [Tor4YouService(config_yaml_manager)]
 
-    for service in services:
-        if isinstance(service, IService):
-            service.start()
-        else:
-            raise TypeError(f"Service {service} does not implement IService interface.")
+    manager = multiprocessing.Manager()
+    shutdown_event = manager.Event()
 
-    signal.signal(signal.SIGINT, handle_exit)
-    signal.signal(signal.SIGTERM, handle_exit)
-    logger.info("Services started successfully.")
-    print("Services started. Press Ctrl+C to stop.")
+    # Setup signal handlers
+    def handle_exit_and_shutdown(signum, frame):
+        logger.info("Stopping services...")
+        shutdown_event.set()
+
+    signal.signal(signal.SIGINT, handle_exit_and_shutdown)
+    signal.signal(signal.SIGTERM, handle_exit_and_shutdown)
+
+    # List of (service class, args)
+    service_defs = [
+        (Tor4YouService, ()),
+        (BotService, ()),
+    ]
+
+    processes = []
+    for service_cls, args in service_defs:
+        proc = multiprocessing.Process(
+            target=run_service,
+            args=(service_cls, shutdown_event, *args),
+            name=service_cls.__name__
+        )
+        proc.start()
+        processes.append(proc)
+
+    logger.info("Services started successfully. Press Ctrl+C to stop.")
 
     try:
         while not shutdown_event.wait(timeout=0.5):
             pass
     except KeyboardInterrupt:
-        pass
+        shutdown_event.set()
 
-    stop_services(services)
+    # Graceful shutdown
+    for proc in processes:
+        if proc.is_alive():
+            print(f"Terminating {proc.name}...")
+            proc.terminate()
+            proc.join()

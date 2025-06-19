@@ -1,6 +1,5 @@
 from app.common.iservice import IService
 import threading
-from .bot import bot, check_for_inactive_users, start_config_watcher, logger
 
 class BotService(IService):
     def __init__(self):
@@ -8,6 +7,7 @@ class BotService(IService):
         self._running = False
 
     def start(self) -> None:
+        from .bot import bot, check_for_inactive_users, start_config_watcher, logger
         if self._running:
             logger.info("BotService already running.")
             return
@@ -23,6 +23,7 @@ class BotService(IService):
         self._running = True
 
     def stop(self) -> None:
+        from .bot import logger
         logger.info("Stopping BotService...")
         # There is no direct stop for bot.run_forever, so you may need to implement a stop flag in your bot logic.
         self._running = False
