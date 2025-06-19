@@ -13,7 +13,7 @@ from app.utils.logger import setup_logger
 import logging
 
 app_config = AppConfig("the_maze")
-setup_logger(logger_name="bot", log_dir=app_config.products_path / "logs", level=logging.DEBUG)
+setup_logger(logger_name="Tor4UWebhook", log_dir=app_config.products_path / "logs", level=logging.DEBUG)
 
 flask_app = Flask(__name__, static_folder='../frontend/dist')
 CORS(flask_app)

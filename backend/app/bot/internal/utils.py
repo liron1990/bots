@@ -173,7 +173,7 @@ def log_interaction(logger: Logger):
 
             start_timestamp = time()
             notification: Notification = args[0]
-            logger.debug(f"{notification.sender} sent {notification.message_text}")
+            logger.info(f"{notification.sender} sent {notification.message_text}")
             logger.debug(
                 "Notification storage: (before handling): "
                 f"{notification.state_manager.storage}"
@@ -189,7 +189,7 @@ def log_interaction(logger: Logger):
             finish_timestamp = time()
             t = finish_timestamp - start_timestamp
 
-            logger.debug(
+            logger.info(
                 f"Seconds for processing request ({func.__name__}): {round(t, 3)}"
             )
 
