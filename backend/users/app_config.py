@@ -4,8 +4,8 @@ from pathlib import Path
 class AppConfig:
     def __init__(self, user_name, service_name: str = None):
         current_dir = Path(__file__).parent
-        user_dir = current_dir / user_name
-        self.user_data_path: Path = user_dir / "user_data"
+        user_dir = current_dir / "users_data" / user_name
+        self.user_data_path: Path = user_dir 
         if service_name:
             self.user_data_path = self.user_data_path / service_name
             
