@@ -2,7 +2,8 @@ import signal
 import multiprocessing
 from app.common.iservice import IService
 from app.common.tor4u.tor4u_service import Tor4YouService
-from app.bot.bot_service import BotService
+# from users.users_data.boti.bot.bot_service import BotService    
+from users.users_programs.boti.bot.bot_service import BotService
 from users.app_config import AppConfig
 from app.utils.logger import setup_logger, logger
 import logging
@@ -32,8 +33,8 @@ if __name__ == '__main__':
     except RuntimeError:
         pass
 
-    app_config = AppConfig("the_maze")
-    setup_logger("services", log_dir=app_config.products_path / "logs")
+    app_config = AppConfig("services")
+    setup_logger("services", log_dir=app_config.logs_path)
 
     manager = multiprocessing.Manager()
     shutdown_event = manager.Event()
@@ -48,7 +49,7 @@ if __name__ == '__main__':
 
     # List of (service class, args)
     service_defs = [
-        (Tor4YouService, ()),
+        # (Tor4YouService, ()),
         (BotService, ()),
     ]
 
