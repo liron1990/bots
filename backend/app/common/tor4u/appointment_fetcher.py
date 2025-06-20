@@ -2,12 +2,13 @@ import threading
 from datetime import datetime, timedelta
 
 import requests
-from .constants import API_URL, TORKEY
+from .constants import API_URL
 from app.utils.logger import logger
 
 class AppointmentFetcher:
-    def __init__(self, on_new_appointments, interval=7200):
+    def __init__(self, on_new_appointments, tor4u_key: str, interval=7200):
         self.on_new_appointments = on_new_appointments  # callback function
+        self.tor4u_key = tor4u_key
         self.interval = interval
         self.test_mode = False
         self._stop_event = threading.Event()
@@ -34,7 +35,7 @@ class AppointmentFetcher:
             self._stop_event.wait(self.interval)
 
     def fetch(self, from_date, to_date):
-        headers = {"torkey": TORKEY}
+        headers = {"torkey": self.tor4u_key}
         params = {"from": from_date, "to": to_date, "format": 2, "showcancelled": 1}
 
         if self._lu:
