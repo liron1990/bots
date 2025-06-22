@@ -13,7 +13,7 @@ from whatsapp_chatbot_python import GreenAPIBot, Notification
 from whatsapp_chatbot_python.filters import TEXT_TYPES
 from whatsapp_chatgpt_python import WhatsappGptBot
 from yaml import safe_load
-from users.app_config import AppConfig
+from users.app_config import BotConfig
 
 from app.bot.internal.GptProcess import GPTProcessingContext
 from app.bot.internal.config import load_config, Config
@@ -25,16 +25,16 @@ from app.bot.internal.utils import (
     sender_state_data_updater,
     get_first_name, LAST_INTERACTION_KEY, get_state, get_sender_printable, send_lead_to_biz1,
 )
-app_config = AppConfig("boti", "bot")
+bot_config = BotConfig("the_maze")
 RELOAD_INTERVAL = 10
 
-config: Config = load_config(str(app_config.config_dir / "params.json"))
+config: Config = load_config(str(bot_config.config_path))
 
-with open(str(app_config.config_dir / "data.yml"), encoding="utf8") as f:
+with open(str(bot_config.data_yaml_path), encoding="utf8") as f:
     answers_data = safe_load(f)
 
 
-prompt = app_config.config_dir.joinpath("prompt.txt").read_text(encoding="utf8")
+prompt = bot_config.config_path.read_text(encoding="utf8")
 
 gpt_bot = WhatsappGptBot(
     id_instance=config.user_id,
@@ -645,8 +645,8 @@ def get_mod_time(path: str) -> Optional[float]:
 
 
 def start_config_watcher(interval: int = RELOAD_INTERVAL):
-    params_path = str(app_config.config_dir / "params.json")
-    yaml_data_path = str(app_config.config_dir / "data.yml")
+    params_path = str(bot_config.config_path)
+    yaml_data_path = str(bot_config.data_yaml_path)
     last_config_time = get_mod_time(params_path)
     last_data_time = get_mod_time(yaml_data_path)
 
@@ -677,51 +677,6 @@ def start_config_watcher(interval: int = RELOAD_INTERVAL):
 
     threading.Thread(target=watcher, daemon=True).start()
 
-def run_with_watcher(target_file: Path, prompt_file: Path, poll_interval=1.0):
-    """
-    Runs the given Python file in a subprocess and restarts it if prompt_file changes.
-    """
-    def get_prompt_mtime():
-        if prompt_file.exists():
-            return prompt_file.stat().st_mtime
-        return None
-
-    def pythonpath_env():
-            env = os.environ.copy()
-            current_pythonpath = env.get("PYTHONPATH", "")
-            project_root = str(Path(__file__).parents[3].resolve())
-            paths = [str(Path().resolve()), project_root]
-            if current_pythonpath:
-                paths.append(current_pythonpath)
-            env["PYTHONPATH"] = os.pathsep.join(paths)
-            return env
-
-    last_prompt_mtime = get_prompt_mtime()
-    process = subprocess.Popen([sys.executable, str(target_file)], env=pythonpath_env())
-
-    try:
-        while True:
-            time.sleep(poll_interval)
-            new_prompt_mtime = get_prompt_mtime()
-            if new_prompt_mtime != last_prompt_mtime:
-                print(f"Detected change in {prompt_file}. Restarting process...")
-                process.terminate()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                last_prompt_mtime = new_prompt_mtime
-                process = subprocess.Popen([sys.executable, str(target_file)], env=pythonpath_env())
-            elif process.poll() is not None:
-                print("Process exited. Restarting...")
-                process = subprocess.Popen([sys.executable, str(target_file)], env=pythonpath_env())
-                last_prompt_mtime = get_prompt_mtime()
-    except KeyboardInterrupt:
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
 
 def main():
     logger.info("Starting WhatsApp Demo Chatbot")

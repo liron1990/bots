@@ -2,7 +2,7 @@ import threading
 import multiprocessing
 import time
 from app.common.iservice import IService
-from users.app_config import AppConfig
+from users.app_config import BotConfig
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from pathlib import Path
@@ -37,8 +37,8 @@ class PromptChangeHandler(FileSystemEventHandler):
             self.restart_event.set()
 
 class BotService(IService):
-    def __init__(self, app_config: AppConfig):
-        self.app_config = app_config
+    def __init__(self, bot_config: BotConfig):
+        self.bot_config = bot_config
         self._main_proc = None
         self._watcher_thread = None
         self._stop_event = multiprocessing.Event()
@@ -46,7 +46,7 @@ class BotService(IService):
 
     def _run_main(self):
         while not self._stop_event.is_set():
-            bot_path = self.app_config.programs_dir / "bot.py"
+            bot_path = self.bot_config.programs_dir / "bot.py"
             self._main_proc = multiprocessing.Process(
                 target=run_bot_py, args=(bot_path,), name="BotMainProcess"
             )
@@ -80,7 +80,7 @@ class BotService(IService):
             observer.join()
 
     def start(self) -> None:
-        prompt_file = self.app_config.config_dir.joinpath("prompt.txt")
+        prompt_file = self.bot_config.prompt_path
         # Start main process in a separate thread
         main_proc_thread = threading.Thread(target=self._run_main, args=(), daemon=True, name="BotMainProcessThread")
         main_proc_thread.start()

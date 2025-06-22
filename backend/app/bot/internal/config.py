@@ -27,8 +27,8 @@ class Config:
     @staticmethod
     def from_dict(data: dict) -> 'Config':
         return Config(
-            user_id=data["USER_ID"],
-            api_token_id=data["API_TOKEN_ID"],
+            user_id=data["GREEN_API"]["INSTANCE_ID"],
+            api_token_id=data["GREEN_API"]["TOKEN"],
             crm_api_token=data["CRM_API_TOKEN"],
             open_ai_key=data.get("OPEN_AI_KEY"),
             answer_only=data.get("ANSWER_ONLY"),
@@ -37,7 +37,6 @@ class Config:
             reminder_timeout=data.get("REMINDER_TIMEOUT", 120),
             notify_on_non_kids_events=data.get("NOTIFY_ON_NON_KIDS_EVENTS", False)
         )
-
 
 def load_config(path: str) -> Config:
     with open(path, "r", encoding="utf-8") as f:

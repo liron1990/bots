@@ -9,7 +9,7 @@ import atexit
 from app.common.config_yaml_manager import ConfigYamlManager
 from app.utils.yaml_manager import YamlManager
 from app.common.tor4u.webhook_handler import WebhookHandler
-from users.app_config import AppConfig
+from users.app_config import AppConfig, BotConfig
 from .auth import auth_bp, jwt_required, get_user_id_from_request
 from app.utils.logger import setup_logger
 import logging
@@ -21,12 +21,11 @@ flask_app = Flask(__name__, static_folder='C:\\projects\\the_maze\\simple-hebrew
 CORS(flask_app)
 
 
-def get_user_dir():
+def get_bot_config() -> BotConfig:
     user = get_user_id_from_request()
     if not user:
         return None
-    app_config = AppConfig(user, "bot")
-    return app_config.config_dir
+    return BotConfig(user)
 
 # Register JWT-based auth routes
 flask_app.register_blueprint(auth_bp, url_prefix="/api")
@@ -67,13 +66,12 @@ def serve2(path):
 @flask_app.route('/api/bot_messages', methods=['GET'])
 @jwt_required
 def get_yaml_as_json():
-    user_dir = get_user_dir()
-    if not user_dir:
+    bot_config = get_bot_config()
+    if not bot_config:
         return jsonify({'error': 'Unauthorized'}), 401
-    path = user_dir / 'messages.yaml'
-    if not path.exists():
+    if not bot_config.data_yaml_path.exists():
         return jsonify({'error': 'File not found'}), 404
-    manager = YamlManager(path)
+    manager = YamlManager(bot_config.data_yaml_path)
     data, err = manager.load()
     if err:
         return jsonify({'error': err}), 400
@@ -82,11 +80,10 @@ def get_yaml_as_json():
 @flask_app.route('/api/bot_messages', methods=['POST'])
 @jwt_required
 def update_yaml_from_json():
-    user_dir = get_user_dir()
-    if not user_dir:
+    bot_config = get_bot_config()
+    if not bot_config:
         return jsonify({'error': 'Unauthorized'}), 401
-    path = user_dir / 'messages.yaml'
-    manager = YamlManager(path)
+    manager = YamlManager(bot_config.data_yaml_path)
     original_yaml, err = manager.load()
     if err:
         return jsonify({'error': err}), 400
@@ -107,34 +104,32 @@ def update_yaml_from_json():
 @flask_app.route('/api/prompt', methods=['GET', 'POST'])
 @jwt_required
 def prompt_file():
-    user_dir = get_user_dir()
-    if not user_dir:
+    bot_config = get_bot_config()
+    if not bot_config:
         return jsonify({'error': 'Unauthorized'}), 401
-    path = user_dir / "prompt.txt"
     if request.method == 'GET':
-        if not path.exists():
+        if not bot_config.prompt_path.exists():
             return jsonify({'prompt': ''})
-        return jsonify({'prompt': path.read_text(encoding='utf-8')})
+        return jsonify({'prompt': bot_config.prompt_path.read_text(encoding='utf-8')})
     else:
         data = request.json
         prompt = data.get('prompt', '')
-        path.write_text(prompt, encoding='utf-8')
+        bot_config.prompt_path.write_text(prompt, encoding='utf-8')
         return jsonify({'success': True})
 
 @flask_app.route('/api/settings', methods=['GET', 'POST'])
 @jwt_required
 def user_settings():
-    user_dir = get_user_dir()
-    if not user_dir:
+    bot_config = get_bot_config()
+    if not bot_config:
         return jsonify({'error': 'Unauthorized'}), 401
-    path = user_dir / "config.json"
     if request.method == 'GET':
-        if not path.exists():
+        if not bot_config.config_path.exists():
             return jsonify({})
-        return jsonify(json.loads(path.read_text(encoding='utf-8')))
+        return jsonify(json.loads(bot_config.config_path.read_text(encoding='utf-8')))
     else:
         data = request.json
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+        bot_config.config_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
         return jsonify({'success': True})
 
 @atexit.register
