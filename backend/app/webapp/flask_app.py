@@ -12,10 +12,11 @@ from .auth import auth_bp, jwt_required, get_user_id_from_request
 from app.utils.logger import setup_logger
 import logging
 
-app_config = AppConfig("the_maze")
+app_config = AppConfig("the_maze", "tor4u")
 setup_logger(logger_name="Tor4UWebhook", log_dir=app_config.products_path / "logs", level=logging.DEBUG)
 
-flask_app = Flask(__name__, static_folder='../frontend/dist')
+# flask_app = Flask(__name__, static_folder='../../../simple-hebrew-bot-studio/dist')
+flask_app = Flask(__name__, static_folder='C:\\projects\\the_maze\\simple-hebrew-bot-studio\\dist')
 CORS(flask_app)
 
 
@@ -23,8 +24,8 @@ def get_user_dir():
     user = get_user_id_from_request()
     if not user:
         return None
-    app_config.user_data_path.mkdir(parents=True, exist_ok=True)
-    return app_config.user_data_path
+    app_config = AppConfig(user, "bot")
+    return app_config.config_dir
 
 # Register JWT-based auth routes
 flask_app.register_blueprint(auth_bp, url_prefix="/api")
@@ -58,8 +59,12 @@ def serve(path):
     else:
         return send_from_directory(flask_app.static_folder, 'index.html')
 
+@flask_app.route('/dashboard', methods=['GET'])
+@jwt_required
+def serve2(path):
+    return send_from_directory(flask_app.static_folder, path)
 
-@flask_app.route('/api/yaml', methods=['GET'])
+@flask_app.route('/api/bot_messages', methods=['GET'])
 @jwt_required
 def get_yaml_as_json():
     user_dir = get_user_dir()
@@ -74,8 +79,31 @@ def get_yaml_as_json():
     except yaml.YAMLError as e:
         return jsonify({'error': str(e)}), 400
 
+from ruamel.yaml import YAML
 
-@flask_app.route('/api/yaml', methods=['POST'])
+yaml_ruamel = YAML()
+yaml_ruamel.preserve_quotes = True
+yaml_ruamel.allow_unicode = True
+yaml_ruamel.indent(sequence=4, offset=2)
+yaml_ruamel.width = 4096  # prevents breaking long lines
+
+def update_values_only(orig, new):
+    if isinstance(orig, dict) and isinstance(new, dict):
+        for k in orig:
+            if k in new:
+                updated_value = update_values_only(orig[k], new[k])
+                if updated_value is not None:
+                    orig[k] = updated_value
+    elif isinstance(orig, list) and isinstance(new, list):
+        for i in range(min(len(orig), len(new))):
+            updated_value = update_values_only(orig[i], new[i])
+            if updated_value is not None:
+                orig[i] = updated_value
+    else:
+        # For scalars, return the new value to be assigned
+        return new
+    
+@flask_app.route('/api/bot_messages', methods=['POST'])
 @jwt_required
 def update_yaml_from_json():
     user_dir = get_user_dir()
@@ -83,7 +111,10 @@ def update_yaml_from_json():
         return jsonify({'error': 'Unauthorized'}), 401
     path = user_dir / 'messages.yaml'
     try:
-        original_yaml = yaml.safe_load(path.read_text(encoding='utf-8'))
+        
+        # original_yaml = yaml.safe_load(path.read_text(encoding='utf-8'))
+        with path.open('r', encoding='utf-8') as f:
+            original_yaml = yaml_ruamel.load(f)
         new_data = request.json
 
         # Prevent changes to keys/structure
@@ -123,8 +154,10 @@ def update_yaml_from_json():
                 print(change)
             return jsonify({'error': 'Keys/structure cannot be changed.'}), 400
 
-        new_yaml = yaml.dump(new_data, sort_keys=False)
-        path.write_text(new_yaml, encoding='utf-8')
+        update_values_only(original_yaml, new_data)
+
+        with path.open('w', encoding='utf-8') as f:
+            yaml_ruamel.dump(original_yaml, f)
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 400

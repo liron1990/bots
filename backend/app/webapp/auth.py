@@ -1,13 +1,28 @@
 from flask import Blueprint, request, jsonify
 from functools import wraps
 import jwt, datetime
+import json
+from pathlib import Path
+from werkzeug.security import generate_password_hash, check_password_hash
 
 SECRET = "gsdfW#@$@#sdsc34"  # use env var in prod
 
 auth_bp = Blueprint("auth", __name__)
 
 # Dummy user store (replace with DB in real app)
-USERS = {"The_maze": "Aa1234"}
+USERS_FILE = Path(__file__).parent / "users.json"
+
+def load_users():
+    if USERS_FILE.exists():
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, ensure_ascii=False, indent=2)
+
+USERS = load_users()
 
 def get_token_from_header():
     auth_header = request.headers.get("Authorization", "")
@@ -34,11 +49,12 @@ def login():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
-
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
 
-    if USERS.get(username) != password:
+    users = load_users()
+    stored_hash = users.get(username)
+    if not stored_hash or not check_password_hash(stored_hash, password):
         return jsonify({"error": "Invalid credentials"}), 401
 
     token = create_token(user_id=username)
@@ -49,7 +65,22 @@ def login():
 def protected():
     return jsonify({"msg": f"Hello {request.user}!"})
 
+@auth_bp.route("/register", methods=["POST"])
+def register():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
 
+    users = load_users()
+    if username in users:
+        return jsonify({"error": "Username already exists"}), 400
+
+    hashed_pw = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+    users[username] = hashed_pw
+    save_users(users)
+    return jsonify({"success": True})
 
 def get_user_id_from_request():
     token = get_token_from_header()
