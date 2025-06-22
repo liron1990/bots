@@ -4,6 +4,7 @@ import jwt, datetime
 import json
 from pathlib import Path
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask import redirect
 
 SECRET = "gsdfW#@$@#sdsc34"  # use env var in prod
 
@@ -35,12 +36,12 @@ def jwt_required(f):
     def decorated(*args, **kwargs):
         token = get_token_from_header()
         if not token:
-            return jsonify({"error": "Missing token"}), 401
+            return redirect("/login")
         try:
             payload = decode_token(token)
             request.user = payload["user_id"]
         except Exception as e:
-            return jsonify({"error": "Invalid or expired token"}), 401
+            return redirect("/login")
         return f(*args, **kwargs)
     return decorated
 
