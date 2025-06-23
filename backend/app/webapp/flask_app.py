@@ -18,7 +18,7 @@ from .admin_api import admin_api
 app_config = AppConfig("services", "webapp")
 setup_logger(logger_name="Tor4UWebhook", log_dir=app_config.products_path / "logs", level=logging.DEBUG)
 
-flask_app = Flask(__name__, static_folder="C:\\projects\\the_maze\\simple-hebrew-bot-studio\\dist", static_url_path='/static')
+flask_app = Flask(__name__, static_folder=str(app_config.programs_dir / "static"), static_url_path='/static')
 CORS(flask_app)
 
 
