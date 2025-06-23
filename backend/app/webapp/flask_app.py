@@ -9,7 +9,7 @@ import atexit
 from app.common.config_yaml_manager import ConfigYamlManager
 from app.utils.yaml_manager import YamlManager
 from app.common.tor4u.webhook_handler import WebhookHandler
-from users.app_config import AppConfig, BotConfig
+from users.app_config import AppConfig, BotConfig, Tor4uConfig
 from .auth import auth_bp, jwt_required, get_user_id_from_request
 from app.utils.logger import setup_logger
 import logging
@@ -26,6 +26,12 @@ def get_bot_config() -> BotConfig:
     if not user:
         return None
     return BotConfig(user)
+
+def get_tor4u_config() -> Tor4uConfig:
+    user = get_user_id_from_request()
+    if not user:
+        return None
+    return Tor4uConfig(user)
 
 # Register JWT-based auth routes
 flask_app.register_blueprint(auth_bp, url_prefix="/api")
@@ -63,43 +69,46 @@ def serve(path):
 def serve2(path):
     return send_from_directory(flask_app.static_folder, path)
 
-@flask_app.route('/api/bot_messages', methods=['GET'])
-@jwt_required
-def get_yaml_as_json():
-    bot_config = get_bot_config()
-    if not bot_config:
+def handle_yaml_messages(config, method):
+    if not config:
         return jsonify({'error': 'Unauthorized'}), 401
-    if not bot_config.data_yaml_path.exists():
-        return jsonify({'error': 'File not found'}), 404
-    manager = YamlManager(bot_config.data_yaml_path)
-    data, err = manager.load()
-    if err:
-        return jsonify({'error': err}), 400
-    return jsonify(data)
+    manager = YamlManager(config.data_yaml_path)
+    if method == 'GET':
+        if not config.data_yaml_path.exists():
+            return jsonify({'error': 'File not found'}), 404
+        data, err = manager.load()
+        if err:
+            return jsonify({'error': err}), 400
+        return jsonify(data)
+    elif method == 'POST':
+        original_yaml, err = manager.load()
+        if err:
+            return jsonify({'error': err}), 400
+        new_data = request.json
 
-@flask_app.route('/api/bot_messages', methods=['POST'])
+        key_check_passed, changes = manager.check_key_structure(original_yaml, new_data)
+        if not key_check_passed:
+            for change in changes:
+                print(change)
+            return jsonify({'error': 'Keys/structure cannot be changed.'}), 400
+
+        manager.update_values_only(original_yaml, new_data)
+        success, err = manager.dump(original_yaml)
+        if not success:
+            return jsonify({'error': err}), 400
+        return jsonify({'success': True})
+
+@flask_app.route('/api/bot_messages', methods=['GET', 'POST'])
 @jwt_required
-def update_yaml_from_json():
+def bot_messages():
     bot_config = get_bot_config()
-    if not bot_config:
-        return jsonify({'error': 'Unauthorized'}), 401
-    manager = YamlManager(bot_config.data_yaml_path)
-    original_yaml, err = manager.load()
-    if err:
-        return jsonify({'error': err}), 400
-    new_data = request.json
+    return handle_yaml_messages(bot_config, request.method)
 
-    key_check_passed, changes = manager.check_key_structure(original_yaml, new_data)
-    if not key_check_passed:
-        for change in changes:
-            print(change)
-        return jsonify({'error': 'Keys/structure cannot be changed.'}), 400
-
-    manager.update_values_only(original_yaml, new_data)
-    success, err = manager.dump(original_yaml)
-    if not success:
-        return jsonify({'error': err}), 400
-    return jsonify({'success': True})
+@flask_app.route('/api/tor4u_messages', methods=['GET', 'POST'])
+@jwt_required
+def tor4u_messages():
+    tor4u_config = get_tor4u_config()
+    return handle_yaml_messages(tor4u_config, request.method)
 
 @flask_app.route('/api/prompt', methods=['GET', 'POST'])
 @jwt_required
