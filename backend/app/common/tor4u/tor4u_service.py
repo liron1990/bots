@@ -4,11 +4,11 @@ from .message_dispatcher import MessageDispatcher
 from .appointment_fetcher import AppointmentFetcher
 from app.common.iservice import IService
 from app.common.config_yaml_manager import ConfigYamlManager
-from users.app_config import AppConfig
+from users.app_config import Tor4uConfig
 
 
 class Tor4YouService(IService):
-    def __init__(self, app_config: AppConfig):
+    def __init__(self, app_config: Tor4uConfig):
         self.config_yaml_manager = ConfigYamlManager(app_config.config_path, app_config.data_yaml_path)
         self.dispatcher = None
         self.fetcher = None

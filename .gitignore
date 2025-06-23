@@ -3,6 +3,7 @@ __pycache__
 *.py[cod]
 dist/
 build/
+deployment/
 
 .idea
 user_data/
