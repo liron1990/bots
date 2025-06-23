@@ -34,7 +34,7 @@ with open(str(bot_config.data_yaml_path), encoding="utf8") as f:
     answers_data = safe_load(f)
 
 
-prompt = bot_config.config_path.read_text(encoding="utf8")
+prompt = bot_config.prompt_path.read_text(encoding="utf8")
 
 gpt_bot = WhatsappGptBot(
     id_instance=config.user_id,
@@ -88,7 +88,7 @@ def initial_handler(notification: Notification) -> None:
     sender_first_name = get_first_name(notification.event["senderData"]["senderName"])
     answer_text = (
         f'*{answers_data["welcome_message"][hebrew_code]} {sender_first_name}!* 👋\n'
-        f'{answers_data["menu"][0][hebrew_code]}'
+        f'{answers_data["menu"]["0"][hebrew_code]}'
     )
 
     set_state_and_answer(
@@ -116,7 +116,7 @@ def main_menu_menu_handler(notification: Notification) -> None:
     """
     set_state_and_answer(
         notification=notification,
-        message=build_message(notification, ['menu', 0]),
+        message=build_message(notification, ['menu', "0"]),
         state=States.MENU
     )
 
@@ -137,7 +137,7 @@ def main_menu_generic_handler(notification: Notification) -> None:
         if not match:
             return
 
-        option_number = int(match.group(1))
+        option_number = match.group(1)
         set_state_and_answer(notification=notification,
                              message=build_message(notification, ["menu", option_number]))
 
@@ -156,7 +156,7 @@ def menu_7_handler(notification: Notification) -> None:
     language_code = get_state(notification, LANGUAGE_CODE_KEY)
     set_state_and_answer_poll(
         notification=notification,
-        message=build_message(notification, ["menu", 7]),
+        message=build_message(notification, ["menu", "7"]),
         options=[
             answers_data["kids_birthday_intro"][language_code],
             answers_data["adults_birthday_intro"][language_code],
@@ -432,7 +432,7 @@ def change_language_handler(notification: Notification) -> None:
         language_code = "he"
     
     set_state_and_answer(notification=notification, 
-                        message=answers_data['menu'][0][language_code],
+                        message=answers_data['menu']["0"][language_code],
                         state_data={LANGUAGE_CODE_KEY: language_code})
 
 
@@ -676,7 +676,6 @@ def start_config_watcher(interval: int = RELOAD_INTERVAL):
                     logger.error(f"Failed to reload answers_data: {e}")
 
     threading.Thread(target=watcher, daemon=True).start()
-
 
 def main():
     logger.info("Starting WhatsApp Demo Chatbot")
