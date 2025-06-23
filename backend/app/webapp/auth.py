@@ -103,3 +103,12 @@ def create_token(user_id):
 
 def decode_token(token):
     return jwt.decode(token, SECRET, algorithms=["HS256"])
+
+@auth_bp.route("/auth/check-role", methods=["GET"])
+@jwt_required
+def check_role():
+    user_id = get_user_id_from_request()
+    if user_id == "admin":
+        return jsonify({"role": "admin"})
+    else:
+        return jsonify({"role": "user"})

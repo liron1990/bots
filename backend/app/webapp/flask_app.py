@@ -13,11 +13,12 @@ from users.app_config import AppConfig, BotConfig, Tor4uConfig
 from .auth import auth_bp, jwt_required, get_user_id_from_request
 from app.utils.logger import setup_logger
 import logging
+from .admin_api import admin_api
 
-app_config = AppConfig("services")
+app_config = AppConfig("services", "webapp")
 setup_logger(logger_name="Tor4UWebhook", log_dir=app_config.products_path / "logs", level=logging.DEBUG)
 
-flask_app = Flask(__name__, static_folder='C:\\projects\\the_maze\\simple-hebrew-bot-studio\\dist')
+flask_app = Flask(__name__, static_folder="C:\\projects\\the_maze\\simple-hebrew-bot-studio\\dist", static_url_path='/static')
 CORS(flask_app)
 
 
@@ -35,6 +36,7 @@ def get_tor4u_config() -> Tor4uConfig:
 
 # Register JWT-based auth routes
 flask_app.register_blueprint(auth_bp, url_prefix="/api")
+flask_app.register_blueprint(admin_api)  # Register admin API
 
 the_maze_app_config = AppConfig("the_maze", "tor4u")
 config_yaml_manager = ConfigYamlManager(the_maze_app_config.config_path, the_maze_app_config.data_yaml_path)
