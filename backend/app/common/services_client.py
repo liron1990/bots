@@ -1,10 +1,21 @@
-import requests
+import json
+import time
+import uuid
+from users.app_config import AppConfig
+app_config = AppConfig("services", "management")
+
+class ServicesServerPathes:
+    MANAGEMENT_DIR = app_config.products_path
+    STATE_FILE = MANAGEMENT_DIR / "state.json"
+    REQUESTS_DIR = MANAGEMENT_DIR / "requests"
+
+ServicesServerPathes.REQUESTS_DIR.mkdir(parents=True, exist_ok=True)
 
 class ServicesClient:
-    def __init__(self, base_url="http://localhost:5051"):
-        self.base_url = base_url
-    def list_all_services(self):
+    @staticmethod
+    def list_all_services():
         """
+        Reads state.json for all services and their state.
         Example output:
         [
             {"user": "the_maze", "service": "bot", "state": "running"},
@@ -12,36 +23,63 @@ class ServicesClient:
             {"user": "boti", "service": "bot", "state": "running"}
         ]
         """
-        return requests.get(f"{self.base_url}/api/services/all").json()
+        if not ServicesServerPathes.STATE_FILE.exists():
+            return []
+        with  ServicesServerPathes.STATE_FILE.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    
+    @staticmethod
+    def __request_action(action, user, service, timeout=10):
+        """
+        File-based request: creates a request file in the management/requests directory.
+        Waits for the result file and returns the result.
+        """
+        req_id = uuid.uuid4().hex
+        req_file = ServicesServerPathes.REQUESTS_DIR / f"{req_id}.json"
+        result_file = ServicesServerPathes.REQUESTS_DIR / f"{req_id}.result.json"
+        req = {"action": action, "user": user, "service": service}
+        with req_file.open("w", encoding="utf-8") as f:
+            json.dump(req, f, ensure_ascii=False, indent=2)
+        # Wait for result file (up to timeout seconds)
+        for _ in range(int(timeout * 5)):
+            if result_file.exists():
+                with result_file.open("r", encoding="utf-8") as f:
+                    result = json.load(f)
+                result_file.unlink(missing_ok=True)
+                return result
+            time.sleep(0.2)
+        return {"success": False, "message": "Timeout waiting for result"}
 
-    def start_service(self, user, service):
+    @staticmethod
+    def start_service(user, service):
         """
         Example output:
         {'success': True, 'message': 'Service started'}
         """
-        return requests.post(f"{self.base_url}/api/services/start", json={"user": user, "service": service}).json()
-
-    def stop_service(self, user, service):
+        return ServicesClient.__request_action("start", user, service)
+    
+    @staticmethod
+    def stop_service(user, service):
         """
         Example output:
         {'success': True, 'message': 'Service stopped'}
         """
-        return requests.post(f"{self.base_url}/api/services/stop", json={"user": user, "service": service}).json()
-
-    def restart_service(self, user, service):
+        return ServicesClient.__request_action("stop", user, service)
+    
+    @staticmethod
+    def restart_service(user, service):
         """
         Example output:
         {'success': True, 'message': 'Service stopped; Service started'}
         """
-        return requests.post(f"{self.base_url}/api/services/restart", json={"user": user, "service": service}).json()
+        return ServicesClient.__request_action("restart", user, service)
 
 if __name__ == "__main__":
-    client = ServicesClient()
     print("# List all services with state")
-    print(client.list_all_services())
+    print(ServicesClient.list_all_services())
     print("# Start a service")
-    print(client.start_service("boti", "bot"))
+    print(ServicesClient.start_service("boti", "bot"))
     print("# Stop a service")
-    print(client.stop_service("boti", "bot"))
+    print(ServicesClient.stop_service("boti", "bot"))
     print("# Restart a service")
-    print(client.restart_service("the_maze", "bot"))
+    print(ServicesClient.restart_service("the_maze", "bot"))

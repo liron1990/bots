@@ -2,7 +2,8 @@ import signal
 import multiprocessing
 import threading
 import time
-from flask import Flask, jsonify, request
+import json
+from app.common.services_client import ServicesServerPathes
 from app.common.iservice import IService
 from app.common.tor4u.tor4u_service import Tor4YouService
 from app.bot.bot_service import BotService
@@ -10,16 +11,15 @@ from users.app_config import AppConfig, BotConfig, Tor4uConfig
 from app.utils.logger import setup_logger, logger
 import logging
 
+
 shutdown_event = multiprocessing.Event()
 
-# Service registry for management
 SERVICE_DEFS = [
-    # ("the_maze", "tor4u", Tor4YouService, Tor4uConfig("the_maze")),
-    # ("the_maze", "bot", BotService, BotConfig("the_maze")),
+    ("the_maze", "tor4u", Tor4YouService, Tor4uConfig("the_maze")),
+    ("the_maze", "bot", BotService, BotConfig("the_maze")),
     ("boti", "bot", BotService, BotConfig("boti")),
 ]
 
-# Maps (user, service) -> process
 service_processes = {}
 service_shutdown_events = {}
 service_lock = threading.Lock()
@@ -40,7 +40,6 @@ def run_service(service_cls, shutdown_event, app_config):
 def start_service(user, service):
     with service_lock:
         key = (user, service)
-        # Find service def
         for u, s, cls, config in SERVICE_DEFS:
             if u == user and s == service:
                 if key in service_processes and service_processes[key].is_alive():
@@ -69,11 +68,9 @@ def stop_service(user, service):
             else:
                 proc.terminate()
                 proc.join(timeout=5)
-            # Clean up after stopping
             service_processes.pop(key, None)
             service_shutdown_events.pop(key, None)
             return True, "Service stopped"
-        # Clean up if not running
         service_processes.pop(key, None)
         service_shutdown_events.pop(key, None)
         return False, "Service not running"
@@ -97,52 +94,7 @@ def get_running_services():
                 running.setdefault(user, []).append(service)
     return running
 
-# Flask API for service management
-app = Flask(__name__)
-
-@app.route("/api/services", methods=["GET"])
-def api_list_services():
-    return jsonify(list_services())
-
-@app.route("/api/services/running", methods=["GET"])
-def api_running_services():
-    return jsonify(get_running_services())
-
-@app.route("/api/services/start", methods=["POST"])
-def api_start_service():
-    data = request.json
-    user = data.get("user")
-    service = data.get("service")
-    ok, msg = start_service(user, service)
-    return jsonify({"success": ok, "message": msg})
-
-@app.route("/api/services/stop", methods=["POST"])
-def api_stop_service():
-    data = request.json
-    user = data.get("user")
-    service = data.get("service")
-    ok, msg = stop_service(user, service)
-    return jsonify({"success": ok, "message": msg})
-
-@app.route("/api/services/restart", methods=["POST"])
-def api_restart_service():
-    data = request.json
-    user = data.get("user")
-    service = data.get("service")
-    ok, msg = restart_service(user, service)
-    return jsonify({"success": ok, "message": msg})
-
-@app.route("/api/services/all", methods=["GET"])
-def api_list_all_services():
-    """
-    Returns a list of all services with their running state.
-    Example response:
-    [
-        {"user": "the_maze", "service": "bot", "state": "running"},
-        {"user": "the_maze", "service": "tor4u", "state": "stopped"},
-        {"user": "boti", "service": "bot", "state": "running"}
-    ]
-    """
+def list_all_services():
     all_services = []
     with service_lock:
         for user, service, *_ in SERVICE_DEFS:
@@ -150,10 +102,49 @@ def api_list_all_services():
             proc = service_processes.get(key)
             state = "running" if proc and proc.is_alive() else "stopped"
             all_services.append({"user": user, "service": service, "state": state})
-    return jsonify(all_services)
+    return all_services
 
-def flask_thread():
-    app.run(host="localhost", port=5051, debug=False, use_reloader=False)
+def update_state_file():
+    """Write the current state to state.json"""
+    state = list_all_services()
+    with ServicesServerPathes.STATE_FILE.open("w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
+
+def process_incoming_requests():
+    """Process request files in the requests dir."""
+    for req_file in ServicesServerPathes.REQUESTS_DIR.glob("*.json"):
+        try:
+            with req_file.open("r", encoding="utf-8") as f:
+                req = json.load(f)
+            action = req.get("action")
+            user = req.get("user")
+            service = req.get("service")
+            if action == "start":
+                ok, msg = start_service(user, service)
+            elif action == "stop":
+                ok, msg = stop_service(user, service)
+            elif action == "restart":
+                ok, msg = restart_service(user, service)
+            else:
+                ok, msg = False, "Unknown action"
+            # Write result file
+            result_file = req_file.with_suffix(".result.json")
+            with result_file.open("w", encoding="utf-8") as rf:
+                json.dump({"success": ok, "message": msg}, rf, ensure_ascii=False, indent=2)
+        except Exception as e:
+            result_file = req_file.with_suffix(".result.json")
+            with result_file.open("w", encoding="utf-8") as rf:
+                json.dump({"success": False, "message": str(e)}, rf, ensure_ascii=False, indent=2)
+        finally:
+            req_file.unlink(missing_ok=True)
+
+def management_loop():
+    """Background thread to update state and process requests."""
+    while True:
+        update_state_file()
+        process_incoming_requests()
+        time.sleep(1)
+
 
 if __name__ == '__main__':
     try:
@@ -164,8 +155,8 @@ if __name__ == '__main__':
     app_config = AppConfig("services")
     setup_logger("services", log_dir=app_config.logs_path)
 
-    # Start Flask API in a separate thread
-    threading.Thread(target=flask_thread, daemon=True).start()
+    # Start management loop in a background thread
+    threading.Thread(target=management_loop, daemon=True).start()
 
     # Start all services at launch
     for user, service, cls, config in SERVICE_DEFS:
@@ -177,11 +168,9 @@ if __name__ == '__main__':
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        # Signal all shutdown events for graceful exit
         for event in list(service_shutdown_events.values()):
             event.set()
 
-    # Graceful shutdown
     for proc in list(service_processes.values()):
         if proc.is_alive():
             print(f"Terminating {proc.name}...")

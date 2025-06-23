@@ -22,8 +22,7 @@ def admin_ping():
 @admin_api.route("/api/admin/services/all", methods=["GET"])
 @admin_required
 def admin_list_all_services():
-    client = ServicesClient("http://localhost:5051")
-    return jsonify(client.list_all_services())
+    return jsonify(ServicesClient.list_all_services())
 
 @admin_api.route("/api/admin/services/<action>", methods=["POST"])
 @admin_required
@@ -33,13 +32,12 @@ def admin_service_action(action):
     data = request.json
     user = data.get("user")
     service = data.get("service")
-    client = ServicesClient("http://localhost:5051")
     if action == "start":
-        result = client.start_service(user, service)
+        result = ServicesClient.start_service(user, service)
     elif action == "stop":
-        result = client.stop_service(user, service)
+        result = ServicesClient.stop_service(user, service)
     elif action == "restart":
-        result = client.restart_service(user, service)
+        result = ServicesClient.restart_service(user, service)
     else:
         result = {"error": "Unknown action"}
     return jsonify(result)
