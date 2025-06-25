@@ -15,8 +15,8 @@ import logging
 shutdown_event = multiprocessing.Event()
 
 SERVICE_DEFS = [
-    ("the_maze", "tor4u", Tor4YouService, Tor4uConfig("the_maze")),
-    ("the_maze", "bot", BotService, BotConfig("the_maze")),
+    # ("the_maze", "tor4u", Tor4YouService, Tor4uConfig("the_maze")),
+    # ("the_maze", "bot", BotService, BotConfig("the_maze")),
     ("boti", "bot", BotService, BotConfig("boti")),
 ]
 
@@ -127,12 +127,13 @@ def process_incoming_requests():
                 ok, msg = restart_service(user, service)
             else:
                 ok, msg = False, "Unknown action"
+            
             # Write result file
-            result_file = req_file.with_suffix(".result.json")
+            result_file =  ServicesServerPathes.RESPONSE_DIR / req_file.name
             with result_file.open("w", encoding="utf-8") as rf:
                 json.dump({"success": ok, "message": msg}, rf, ensure_ascii=False, indent=2)
         except Exception as e:
-            result_file = req_file.with_suffix(".result.json")
+            result_file =  ServicesServerPathes.RESPONSE_DIR / req_file.name
             with result_file.open("w", encoding="utf-8") as rf:
                 json.dump({"success": False, "message": str(e)}, rf, ensure_ascii=False, indent=2)
         finally:

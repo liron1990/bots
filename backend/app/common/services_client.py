@@ -8,8 +8,10 @@ class ServicesServerPathes:
     MANAGEMENT_DIR = app_config.products_path
     STATE_FILE = MANAGEMENT_DIR / "state.json"
     REQUESTS_DIR = MANAGEMENT_DIR / "requests"
+    RESPONSE_DIR = MANAGEMENT_DIR / "responses"
 
 ServicesServerPathes.REQUESTS_DIR.mkdir(parents=True, exist_ok=True)
+ServicesServerPathes.RESPONSE_DIR.mkdir(parents=True, exist_ok=True)
 
 class ServicesClient:
     @staticmethod
@@ -36,7 +38,7 @@ class ServicesClient:
         """
         req_id = uuid.uuid4().hex
         req_file = ServicesServerPathes.REQUESTS_DIR / f"{req_id}.json"
-        result_file = ServicesServerPathes.REQUESTS_DIR / f"{req_id}.result.json"
+        result_file = ServicesServerPathes.RESPONSE_DIR / f"{req_id}.json"
         req = {"action": action, "user": user, "service": service}
         with req_file.open("w", encoding="utf-8") as f:
             json.dump(req, f, ensure_ascii=False, indent=2)
