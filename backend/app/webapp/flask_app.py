@@ -66,10 +66,6 @@ def serve(path):
     else:
         return send_from_directory(flask_app.static_folder, 'index.html')
 
-@flask_app.route('/dashboard', methods=['GET'])
-@jwt_required
-def serve2(path):
-    return send_from_directory(flask_app.static_folder, path)
 
 def handle_yaml_messages(config, method):
     if not config:
