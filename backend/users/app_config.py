@@ -5,7 +5,7 @@ class AppConfig:
     def __init__(self, user_name, service_name: str = None):
         current_dir = Path(__file__).parent
         self.programs_dir: Path = current_dir / "users_programs" / user_name
-        self.user_data_path: Path = current_dir / "users_data" / user_name 
+        self.user_data_path: Path = current_dir/ ".." / '..' / "users_data" / user_name 
         
         if service_name:
             self.user_data_path = self.user_data_path / service_name

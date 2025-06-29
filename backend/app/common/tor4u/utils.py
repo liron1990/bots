@@ -9,7 +9,7 @@ def enrich_appointment_data(data):
     # Parse date/time
     from_dt = None
     if "From_date" in data:
-        from_dt = datetime.strptime(data["From_date"], "%d/%m/%Y %H:%M:%S")
+        from_dt = __try_parse_date(data["From_date"])
     elif "from" in data:
         from_dt = datetime.strptime(data["from"], "%Y%m%d%H%M")
 
@@ -30,7 +30,7 @@ def enrich_appointment_data(data):
         new_data["last"] = data["customerlast"].strip()
 
     return new_data
-    
+
 def get_template_messages(data, templates):
     room = data.get("staffname", "")
     return templates.get(room, templates["general"])
@@ -45,3 +45,13 @@ def should_filter(data: Dict[str, Any], config: Config) -> bool:
             logger.info(f"Filtered out appointment by key {k} with value {data[k]}")
             return True
     return False
+
+
+def __try_parse_date(dt_str):
+    dt_str = dt_str.replace("\\/", "/").replace("\\", "/")
+    for fmt in ["%d/%m/%Y %H:%M:%S"]:
+        try:
+            return datetime.strptime(dt_str, fmt)
+        except Exception:
+            continue
+    raise ValueError(f"Could not parse date string: {dt_str}")

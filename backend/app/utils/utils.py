@@ -60,7 +60,10 @@ END:VCALENDAR
         f.write(ics_content)
 
     return file_path
-
+    
+def number_to_wa_chat_id(raw_number: str) -> str:
+    normalized_number = normalize_whatsapp_number(raw_number)
+    return f"{normalized_number}@c.us"
 
 def normalize_whatsapp_number(raw_number):
     # Remove all non-digit characters

@@ -30,7 +30,7 @@ def copy_static_folder(deployment_dir: Path):
 
 def main():
     root = Path(__file__).parent
-    deployment_dir = root / "deployment"
+    deployment_dir = root / ".." / "deployment"
 
     # Remove existing deployment dir if exists
     if deployment_dir.exists():
