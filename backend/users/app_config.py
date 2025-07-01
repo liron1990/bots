@@ -6,6 +6,7 @@ class AppConfig:
         current_dir = Path(__file__).parent
         self.programs_dir: Path = current_dir / "users_programs" / user_name
         self.user_data_path: Path = current_dir/ ".." / '..' / "users_data" / user_name 
+        self.products_path: Path = current_dir/ ".." / '..' / "users_products" / user_name 
         
         if service_name:
             self.user_data_path = self.user_data_path / service_name
@@ -14,7 +15,6 @@ class AppConfig:
         self.user_data_path.mkdir(parents=True, exist_ok=True)
         self.programs_dir.mkdir(parents=True, exist_ok=True)  
         
-        self.products_path: Path = self.user_data_path / "products"
         self.products_path.mkdir(parents=True, exist_ok=True)
         
         self.logs_path: Path = self.products_path / "logs"
