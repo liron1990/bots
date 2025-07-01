@@ -3,6 +3,7 @@ import yaml
 import threading
 from app.utils.config import Config
 from app.utils.logger import logger  # Make sure logger is initialized before using
+from app.common.messages import TemplateMerger
 
 thread_started = False
 
@@ -11,7 +12,7 @@ class ConfigYamlManager:
         self.config_path = config_path
         self.yaml_path = yaml_path
         self._config: Config = None
-        self._yaml = None
+        self._yaml: TemplateMerger = None
         self._config_mtime = None
         self._yaml_mtime = None
         self._lock = threading.Lock()
@@ -34,7 +35,7 @@ class ConfigYamlManager:
                 # Load data.yml
                 logger.info(f"Loading YAML from {self.yaml_path}")
                 with open(self.yaml_path, encoding="utf-8") as f:
-                    self._yaml = yaml.safe_load(f)
+                    self._yaml = TemplateMerger(yaml.safe_load(f))
                 self._yaml_mtime = os.path.getmtime(self.yaml_path)
             except Exception as e:
                 logger.exception(f"Failed to load YAML from {self.yaml_path}")
@@ -66,9 +67,9 @@ class ConfigYamlManager:
         with self._lock:
             return self._config
 
-    def get_yaml(self):
+    def get_yaml(self) -> TemplateMerger:
         with self._lock:
-            return self._yaml.copy() if self._yaml else {}
+            return self._yaml
 
     def stop(self):
         logger.info(f"stopping ConfigYamlManager thread")

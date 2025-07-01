@@ -2,6 +2,7 @@ from datetime import datetime
 from app.webapp.config import Config
 from typing import Dict, Any
 from app.utils.logger import logger
+from app.common.messages import TemplateMerger
 
 def enrich_appointment_data(data):
     """Returns a new dict with date_str, time_str, and stripped staffname."""
@@ -31,12 +32,13 @@ def enrich_appointment_data(data):
 
     return new_data
 
-def get_template_messages(data, templates):
+def get_template_messages(data, templates: TemplateMerger):
     room = data.get("staffname", "")
-    return templates.get(room, templates["general"])
+    return templates[room]
 
 def should_filter(data: Dict[str, Any], config: Config) -> bool:
-    if 'tmp_expire_date' in data and data['tmp_expire_date']:
+    update = '2'
+    if data.get("action") == update and 'tmp_expire_date' in data and data['tmp_expire_date']:
         logger.info("Filtered out appointments based on config")
         return True
 

@@ -29,11 +29,14 @@ class WebhookHandler:
             data = enrich_appointment_data(data)
 
             action = {"1": "create", "2": "update", "3": "cancel", "5": "expire"}.get(data.get("action"))
+            update_by = "user" if data.get("updateby").strip() == "99" else "staff"
+            logger.info(f"Action: {action}, Update by: {update_by}")
             if not action:
                 return "Unknown action", 400
 
             template = get_template_messages(data, templates)
-            msg = template[action].format(**data)
+            logger.debug(f"Selected template: {template}")
+            msg = template[action][update_by].format(**data)
             caption = templates["calendar_attachment"].format(**data)
 
             number = normalize_whatsapp_number(data["customercell"])
