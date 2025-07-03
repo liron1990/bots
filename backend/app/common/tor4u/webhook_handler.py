@@ -19,19 +19,22 @@ class WebhookHandler:
             return "No JSON", 400
 
         try:
+            logger.info(f"Received webhook data: {data}")
             config: Config = self.yaml_manager.get_config()
             templates = self.yaml_manager.get_yaml()
 
             if should_filter(data, config):
-                logger.info("Webhook filtered")
+                logger.info(f"Webhook filtered")
                 return "Filtered", 200
 
             data = enrich_appointment_data(data)
+            logger.debug(f"Enriched data: {data}")
 
             action = {"1": "create", "2": "update", "3": "cancel", "5": "expire"}.get(data.get("action"))
             update_by = "user" if data.get("updateby").strip() == "99" else "staff"
             logger.info(f"Action: {action}, Update by: {update_by}")
             if not action:
+                logger.warning(f"Unknown action: {data.get('action')}")
                 return "Unknown action", 400
 
             template = get_template_messages(data, templates)
@@ -44,15 +47,19 @@ class WebhookHandler:
 
             for num in dests:
                 jid = f"{num}@c.us"
+                logger.info(f"Preparing to send to {jid}, message: {msg}")
                 self.green_api.sending.sendMessage(jid, msg)
                 if action in {"create", "update"}:
+                    logger.info(f"Creating calendar file for {jid}")
                     path = create_ics_file(data, template["calander"])
                     self.green_api.sending.sendFileByUpload(jid, path, "escape_room_event.ics", caption=caption)
 
+            logger.info("Webhook handled successfully")
             return "OK", 200
 
         except Exception as e:
             logger.exception("Webhook processing failed")
             for num in self.yaml_manager.get_config().DEVLOPERS:
+                logger.error(f"Sending error notification to developer {num}: {e}")
                 self.green_api.sending.sendMessage(f"{num}@c.us", f"❌ Error:\n{e}")
             return "Error", 500

@@ -6,7 +6,7 @@ from .constants import API_URL
 from app.utils.logger import logger
 
 class AppointmentFetcher:
-    def __init__(self, on_new_appointments, tor4u_key: str, interval=7200):
+    def __init__(self, on_new_appointments, tor4u_key: str, interval=1800):
         self.on_new_appointments = on_new_appointments  # callback function
         self.tor4u_key = tor4u_key
         self.interval = interval
