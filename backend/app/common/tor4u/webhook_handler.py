@@ -31,8 +31,9 @@ class WebhookHandler:
             logger.debug(f"Enriched data: {data}")
 
             action = {"1": "create", "2": "update", "3": "cancel", "5": "expire"}.get(data.get("action"))
-            update_by = "user" if data.get("updateby").strip() == "99" else "staff"
+            update_by = "client" if data.get("updateby").strip() == "99" else "staff"
             logger.info(f"Action: {action}, Update by: {update_by}")
+
             if not action:
                 logger.warning(f"Unknown action: {data.get('action')}")
                 return "Unknown action", 400
