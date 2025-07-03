@@ -10,11 +10,11 @@ from app.webapp.config import Config
 from users.app_config import Tor4uConfig
 
 class WebhookHandler:
-    def __init__(self, yaml_manager: ConfigYamlManager):
-        config = yaml_manager.get_config()
+    def __init__(self, user_name: str):
+        conf = Tor4uConfig(user_name)
+        self.yaml_manager: ConfigYamlManager = ConfigYamlManager(conf.config_path, conf.data_yaml_path)
+        config = self.yaml_manager.get_config()
         self.green_api: GreenApi = API.GreenAPI(config.GREEN_API_INSTANCE_ID, config.GREEN_API_TOKEN_ID)
-        self.yaml_manager: ConfigYamlManager = yaml_manager
-        conf = Tor4uConfig("the_maze")
         self.__appointmentes_db = AppointmentsDb(conf.appointemets_db)
 
     def handle(self, data):

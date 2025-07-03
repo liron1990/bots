@@ -14,6 +14,7 @@ from .auth import auth_bp, jwt_required, get_user_id_from_request
 from app.utils.logger import setup_logger
 import logging
 from .admin_api import admin_api
+from users.users import Users
 
 app_config = AppConfig("services", "webapp")
 setup_logger(logger_name="Tor4UWebhook", log_dir=app_config.products_path / "logs", level=logging.DEBUG)
@@ -38,14 +39,25 @@ def get_tor4u_config() -> Tor4uConfig:
 flask_app.register_blueprint(auth_bp, url_prefix="/api")
 flask_app.register_blueprint(admin_api)  # Register admin API
 
-the_maze_app_config = AppConfig("the_maze", "tor4u")
-config_yaml_manager = ConfigYamlManager(the_maze_app_config.config_path, the_maze_app_config.data_yaml_path)
-webhook_handler = WebhookHandler(config_yaml_manager)
+
+handlers = {"the_maze": WebhookHandler("the_maze")}
+users = Users()
 
 @flask_app.route('/webhook_fdw53etvn5ekndfetthg52cc352h97wps5', methods=['POST', 'GET'])
 def tor4you_webhook():
     data = request.get_json(silent=True)
-    return webhook_handler.handle(data)
+    return handlers["the_maze"].handle(data)
+
+@flask_app.route('/b737d939-6d7e-4a2b-adb9-2085e6ae883b/<guid>', methods=['POST', 'GET'])
+def tor4you_generic_webhook(guid: str):
+    print("Received GUID:", guid)  # or use it in logic
+    user_name = users.get_user(guid)
+    
+    if user_name not in handlers:
+        handlers[user_name] = WebhookHandler(user_name)
+    
+    data = request.get_json(silent=True)
+    return handlers[user_name].handle(data)
 
 @flask_app.route('/api/logout', methods=['POST'])
 def logout():
