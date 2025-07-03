@@ -37,3 +37,4 @@ class BotConfig(AppConfig):
 class Tor4uConfig(AppConfig):
     def __init__(self, user_name):
         super().__init__(user_name, service_name="tor4u")
+        self.appointemets_db: Path =  self.products_path / "appointments.db"

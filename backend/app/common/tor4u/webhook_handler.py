@@ -1,17 +1,21 @@
 from app.utils.logger import logger
 from app.utils.utils import create_ics_file, normalize_whatsapp_number
 from app.common.config_yaml_manager import ConfigYamlManager
+from app.common.tor4u.appointments_db import AppointmentsDb
 from .utils import get_template_messages, enrich_appointment_data, should_filter
 
 from whatsapp_api_client_python.API import GreenApi
 from whatsapp_api_client_python import API
 from app.webapp.config import Config
+from users.app_config import Tor4uConfig
 
 class WebhookHandler:
     def __init__(self, yaml_manager: ConfigYamlManager):
         config = yaml_manager.get_config()
         self.green_api: GreenApi = API.GreenAPI(config.GREEN_API_INSTANCE_ID, config.GREEN_API_TOKEN_ID)
         self.yaml_manager: ConfigYamlManager = yaml_manager
+        conf = Tor4uConfig("the_maze")
+        self.__appointmentes_db = AppointmentsDb(conf.appointemets_db)
 
     def handle(self, data):
         if not data:
@@ -26,6 +30,12 @@ class WebhookHandler:
             if should_filter(data, config):
                 logger.info(f"Webhook filtered")
                 return "Filtered", 200
+
+            inserted = self.__appointmentes_db.try_insert(data)
+            already_exists = not inserted
+            if already_exists:
+                logger.info("No change in appoitment, not sending message")
+                return "OK", 200
 
             data = enrich_appointment_data(data)
             logger.debug(f"Enriched data: {data}")
