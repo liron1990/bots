@@ -139,6 +139,3 @@ def user_settings():
         bot_config.config_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
         return jsonify({'success': True})
 
-@atexit.register
-def shutdown():
-    config_yaml_manager.stop()

@@ -5,7 +5,6 @@ from app.utils.config import Config
 from app.utils.logger import logger  # Make sure logger is initialized before using
 from app.common.messages import TemplateMerger
 
-thread_started = False
 
 class ConfigYamlManager:
     def __init__(self, config_path, yaml_path):
@@ -17,11 +16,9 @@ class ConfigYamlManager:
         self._yaml_mtime = None
         self._lock = threading.Lock()
         self._load_files()
-        self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._watch_files, daemon=True)
-        self._thread.start()
 
     def _load_files(self):
+        """Load both config and YAML files, updating modification times"""
         with self._lock:
             try:
                 # Load config.json
@@ -40,38 +37,42 @@ class ConfigYamlManager:
             except Exception as e:
                 logger.exception(f"Failed to load YAML from {self.yaml_path}")
 
-    def _watch_files(self):
-        logger.info(f"startting ConfigYamlManager thread")
-        while not self._stop_event.is_set():
-            self._stop_event.wait(timeout=60)
-            if self._stop_event.is_set():
-                break
-            reload_needed = False
+    def _check_and_reload_config(self):
+        """Check if config file has changed and reload if necessary"""
+        if not os.path.exists(self.config_path):
+            return
             
-            if os.path.exists(self.config_path):
-                mtime = os.path.getmtime(self.config_path)
-                if mtime != self._config_mtime:
-                    logger.info(f"Detected change in config file: {self.config_path}")
-                    reload_needed = True
+        try:
+            current_mtime = os.path.getmtime(self.config_path)
+            if current_mtime != self._config_mtime:
+                logger.info(f"Detected change in config file: {self.config_path}")
+                self._config = Config(self.config_path)
+                self._config_mtime = current_mtime
+        except Exception as e:
+            logger.exception(f"Failed to reload config from {self.config_path}")
+
+    def _check_and_reload_yaml(self):
+        """Check if YAML file has changed and reload if necessary"""
+        if not os.path.exists(self.yaml_path):
+            return
             
-            if os.path.exists(self.yaml_path):
-                mtime = os.path.getmtime(self.yaml_path)
-                if mtime != self._yaml_mtime:
-                    logger.info(f"Detected change in YAML file: {self.yaml_path}")
-                    reload_needed = True
-            
-            if reload_needed:
-                self._load_files()
+        try:
+            current_mtime = os.path.getmtime(self.yaml_path)
+            if current_mtime != self._yaml_mtime:
+                logger.info(f"Detected change in YAML file: {self.yaml_path}")
+                with open(self.yaml_path, encoding="utf-8") as f:
+                    self._yaml = TemplateMerger(yaml.safe_load(f))
+                self._yaml_mtime = current_mtime
+        except Exception as e:
+            logger.exception(f"Failed to reload YAML from {self.yaml_path}")
 
     def get_config(self):
+        """Get config, checking for changes first"""
         with self._lock:
+            self._check_and_reload_config()
             return self._config
 
     def get_yaml(self) -> TemplateMerger:
         with self._lock:
+            self._check_and_reload_yaml()
             return self._yaml
-
-    def stop(self):
-        logger.info(f"stopping ConfigYamlManager thread")
-        self._stop_event.set()
-        self._thread.join()
