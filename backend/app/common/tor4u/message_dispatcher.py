@@ -9,13 +9,14 @@ from whatsapp_api_client_python import API
 from app.webapp.config import Config
 from app.utils.utils import normalize_whatsapp_number
 from app.utils.logger import logger
-from .constants import SENT_FILE
 from .utils import should_filter, enrich_appointment_data, get_template_messages
 from app.common.config_yaml_manager import ConfigYamlManager
-
+from users.app_config import Tor4uConfig
 
 class MessageDispatcher:
-    def __init__(self, api: API.GreenAPI, yaml_manager: ConfigYamlManager):
+    def __init__(self, api: API.GreenAPI, yaml_manager: ConfigYamlManager, config: Tor4uConfig):
+        self.config: Tor4uConfig = config
+        self._sent_file_prefix = config.products_path / "sent_tasks" 
         self.api = api
         self.config_manager = yaml_manager
         self._tasks = {}  # key: "{id}_before"/"{id}_after", value: dict with message, number, send_time, etc.
@@ -54,12 +55,12 @@ class MessageDispatcher:
 
     def _sent_file_for_today(self):
         today = datetime.now().strftime("%Y%m%d")
-        return f"{SENT_FILE}_{today}.json"
+        return f"{self._sent_file_prefix}_{today}.json"
 
     def _load_sent_tasks(self):
         # Load all sent_task files and combine keys into a set
         sent_keys = set()
-        files = sorted(glob.glob(f"{SENT_FILE}_*.json"))
+        files = sorted(glob.glob(f"{self._sent_file_prefix}_*.json"))
         for sent_file in files:
             if os.path.exists(sent_file):
                 try:
@@ -77,7 +78,7 @@ class MessageDispatcher:
 
     def _cleanup_old_sent_files(self):
         # Keep only the 3 most recent sent files
-        files = sorted(glob.glob(f"{SENT_FILE}_*.json"))
+        files = sorted(glob.glob(f"{self._sent_file_prefix}_*.json"))
         if len(files) > 3:
             for old_file in files[:-3]:
                 try:

@@ -12,7 +12,7 @@ SECRET = "gsdfW#@$@#sdsc34"  # use env var in prod
 auth_bp = Blueprint("auth", __name__)
 
 app_config = AppConfig("services")
-USERS_FILE = app_config.data_path / "users.json"
+USERS_FILE = app_config.data_path / "users_auth.json"
 
 def load_users():
     if USERS_FILE.exists():
