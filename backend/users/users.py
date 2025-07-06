@@ -34,4 +34,4 @@ class Users:
         for user_name, user_info in self.users.items():
             if user_info.get("guid") == guid:
                 return user_name
-        return None
+        raise ValueError("User not exists")
