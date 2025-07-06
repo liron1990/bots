@@ -5,13 +5,14 @@ import json
 from pathlib import Path
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import redirect
+from users import AppConfig
 
 SECRET = "gsdfW#@$@#sdsc34"  # use env var in prod
 
 auth_bp = Blueprint("auth", __name__)
 
-# Dummy user store (replace with DB in real app)
-USERS_FILE = Path(__file__).parent / "users.json"
+app_config = AppConfig("services")
+USERS_FILE = app_config.data_path / "users.json"
 
 def load_users():
     if USERS_FILE.exists():
