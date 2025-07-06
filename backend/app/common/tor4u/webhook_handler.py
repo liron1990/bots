@@ -73,4 +73,21 @@ class WebhookHandler:
             for num in self.yaml_manager.get_config().DEVLOPERS:
                 logger.error(f"Sending error notification to developer {num}: {e}")
                 self.green_api.sending.sendMessage(f"{num}@c.us", f"❌ Error:\n{e}")
-            return "Error", 500
+            return "Error", 500    def handle_send_message(self, data):
+        try:
+            logger.info(f"handle_send_message called with data: {data}")
+            number = data.get("customercell")
+            if not number:
+                logger.warning("Missing 'customercell' or 'message' in request")
+                return "Missing 'customercell' or 'message'", 400
+
+            number = normalize_whatsapp_number(number)
+            templates = self.yaml_manager.get_yaml()
+            message_template = templates["message"].format(**data)
+            jid = f"{number}@c.us"
+            logger.info(f"Sending message to {jid}: {message_template}")
+            self.green_api.sending.sendMessage(jid, message_template)
+            return "Message sent", 200
+        except Exception as e:
+            logger.exception("Failed to send message")
+            return f"Error: {e}", 500

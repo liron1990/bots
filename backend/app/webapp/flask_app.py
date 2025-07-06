@@ -59,6 +59,17 @@ def tor4you_generic_webhook(guid: str):
     data = request.get_json(silent=True)
     return handlers[user_name].handle(data)
 
+@flask_app.route('/486ea3ce-17f6-4a1a-b1f8-d5c83751453e/<guid>', methods=['POST', 'GET'])
+def send_message(guid: str):
+    print("Received GUID:", guid)  # or use it in logic
+    user_name = users.get_user(guid)
+    
+    if user_name not in handlers:
+        handlers[user_name] = WebhookHandler(user_name)
+    
+    data = request.args.to_dict()
+    return handlers[user_name].handle_send_message(data)
+
 @flask_app.route('/api/logout', methods=['POST'])
 def logout():
     return jsonify({'success': True})
