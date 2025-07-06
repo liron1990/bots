@@ -31,16 +31,20 @@ class WebhookHandler:
                 logger.info(f"Webhook filtered")
                 return "Filtered", 200
 
-            inserted = self.__appointmentes_db.try_insert(data)
-            already_exists = not inserted
-            if already_exists:
-                logger.info("No change in appoitment, not sending message")
-                return "OK", 200
+            action = {"1": "create", "2": "update", "3": "cancel", "5": "expire"}.get(data.get("action"))
+            
+            if action in {"create", "update"}:
+                inserted = self.__appointmentes_db.try_insert(data)
+                already_exists = not inserted
+            
+                if already_exists:
+                    logger.info("No change in appoitment, not sending message")
+                    return "OK", 200
 
             data = enrich_appointment_data(data)
             logger.debug(f"Enriched data: {data}")
 
-            action = {"1": "create", "2": "update", "3": "cancel", "5": "expire"}.get(data.get("action"))
+            
             update_by = "client" if data.get("updateby").strip() == "99" else "staff"
             logger.info(f"Action: {action}, Update by: {update_by}")
 
@@ -73,7 +77,10 @@ class WebhookHandler:
             for num in self.yaml_manager.get_config().DEVLOPERS:
                 logger.error(f"Sending error notification to developer {num}: {e}")
                 self.green_api.sending.sendMessage(f"{num}@c.us", f"❌ Error:\n{e}")
-            return "Error", 500    def handle_send_message(self, data):
+            return "Error", 500
+        
+
+    def handle_send_message(self, data):
         try:
             logger.info(f"handle_send_message called with data: {data}")
             number = data.get("customercell")
