@@ -7,32 +7,42 @@ import tempfile
 import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+from typing import Dict
 
 # Add project root to path for imports
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Now import your modules
-from common.config_yaml_manager import ConfigYamlManager
-from common.config import Config  # Adjust path as needed
-from common.messages import TemplateMerger  # Adjust path as needed
+from app.common.config_yaml_manager import ConfigYamlManager
+from app.utils.config import Config
+from app.common.messages import TemplateMerger  # Adjust path as needed
 
+def mock_config() -> Dict:
+    """Mock Config object for testing"""
+    return {
+                "GREEN_API": {
+                    "INSTANCE_ID": "sdsd",
+                    "TOKEN": "sdf"
+                },
+                "TOR_KEY": "4590-RmKWX2d7NCX93453543dfgsPsnHJ4xTPBdkJvQdPVf2C6THr2VkmVCVnsDGCQ2QQgGldCrk91u",
+                "IS_DEBUG": True,
+                "DEVLOPERS": [
+                    "54545"
+                ],
+                "FILTER_WEB_HOOKS": {
+                    "customercell":  ["0501111111", "0555555555"],
+                    "cell":  ["0501111111", "0555555555"]
+                },
+                "REMINDER_MSG_TIME_BEFORE_HOURS": 24,
+                "THANKS_MSG_TIME_AFTER_HOURS": 1.75
+            }
 
 @pytest.fixture
 def temp_config_file():
     """Create a temporary config JSON file"""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        config_data = {
-            "database": {
-                "host": "localhost",
-                "port": 5432
-            },
-            "api": {
-                "key": "test_key",
-                "timeout": 30
-            }
-        }
-        json.dump(config_data, f)
+        json.dump(mock_config(), f)
         temp_path = f.name
     
     yield temp_path
@@ -107,20 +117,9 @@ class TestConfigYamlManager:
         # Wait a bit to ensure different mtime
         time.sleep(0.1)
         
-        # Modify config file
-        new_config_data = {
-            "database": {
-                "host": "newhost",
-                "port": 3306
-            },
-            "api": {
-                "key": "new_key",
-                "timeout": 60
-            }
-        }
         
         with open(temp_config_file, 'w') as f:
-            json.dump(new_config_data, f)
+            json.dump(mock_config(), f)
         
         # Get config again - should reload
         updated_config = manager.get_config()
