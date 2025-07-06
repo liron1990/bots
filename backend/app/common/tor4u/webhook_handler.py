@@ -85,8 +85,8 @@ class WebhookHandler:
             logger.info(f"handle_send_message called with data: {data}")
             number = data.get("customercell")
             if not number:
-                logger.warning("Missing 'customercell' or 'message' in request")
-                return "Missing 'customercell' or 'message'", 400
+                logger.warning("Missing 'customercell' in request")
+                return "", 400
 
             number = normalize_whatsapp_number(number)
             templates = self.yaml_manager.get_yaml()
