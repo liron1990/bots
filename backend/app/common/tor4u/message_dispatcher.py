@@ -112,10 +112,9 @@ class MessageDispatcher:
     def handle_new_appointments(self, appointments):
         config = self.config_manager.get_config() 
         logger.info(f"Received new appointments")
-
         for appt in appointments:
-            if 'tmp_expire_date' in appt and appt['tmp_expire_date']:
-                logger.info(f"Skipping appointment {appt['id']} due to temporary expiration date")
+            if appt.get("status", "") == "5":
+                logger.info(f"Skipping appointment {appt['id']} due to status 5 (temporary)")
                 continue
             
             if should_filter(appt, config):
