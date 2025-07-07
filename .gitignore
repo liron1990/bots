@@ -4,7 +4,10 @@ __pycache__
 dist/
 build/
 deployment/
+users_data/
+users_products/
+
+backend/users/users_programs/services/webapp/static
 
 .idea
-user_data/
 sent_appointment_msgs*
