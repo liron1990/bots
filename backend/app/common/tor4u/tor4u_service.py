@@ -18,7 +18,7 @@ class Tor4YouService(IService):
         config = self.config_yaml_manager.get_config()
         api = API.GreenAPI(config.GREEN_API_INSTANCE_ID, config.GREEN_API_TOKEN_ID)
         self.dispatcher = MessageDispatcher(api, self.config_yaml_manager, self.app_config)
-        self.fetcher = AppointmentFetcher(on_new_appointments=self.dispatcher.handle_new_appointments, tor4u_key=config.TOR_KEY, interval=7200)
+        self.fetcher = AppointmentFetcher(on_new_appointments=self.dispatcher.handle_new_appointments, tor4u_key=config.TOR_KEY, interval=1800)
 
     def stop(self):
         if self.fetcher:
