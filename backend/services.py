@@ -9,16 +9,14 @@ from app.common.tor4u.tor4u_service import Tor4YouService
 from app.bot.bot_service import BotService
 from users.app_config import AppConfig, BotConfig, Tor4uConfig
 from app.utils.logger import setup_logger, logger
+from users.users import Users
 import logging
 
 
 shutdown_event = multiprocessing.Event()
+users = Users()
 
-SERVICE_DEFS = [
-    # ("the_maze", "tor4u", Tor4YouService, Tor4uConfig("the_maze")),
-    # ("the_maze", "bot", BotService, BotConfig("the_maze")),
-    ("boti", "bot", BotService, BotConfig("boti")),
-]
+SERVICE_DEFS = users.get_active_services()
 
 service_processes = {}
 service_shutdown_events = {}
