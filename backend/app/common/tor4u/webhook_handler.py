@@ -8,6 +8,8 @@ from whatsapp_api_client_python.API import GreenApi
 from whatsapp_api_client_python import API
 from app.webapp.config import Config
 from users.app_config import Tor4uConfig
+from pathlib import Path
+from app.utils.temp_file import temp_path
 
 class WebhookHandler:
     def __init__(self, user_name: str):
@@ -66,8 +68,9 @@ class WebhookHandler:
                 self.green_api.sending.sendMessage(jid, msg)
                 if action in {"create", "update"}:
                     logger.info(f"Creating calendar file for {jid}")
-                    path = create_ics_file(data, template["calander"])
-                    self.green_api.sending.sendFileByUpload(jid, path, "escape_room_event.ics", caption=caption)
+                    with temp_path(suffix=".ics") as path:
+                        create_ics_file(data, template["calander"], path)
+                        self.green_api.sending.sendFileByUpload(jid, str(path), "escape_room_event.ics", caption=caption)
 
             logger.info("Webhook handled successfully")
             return "OK", 200

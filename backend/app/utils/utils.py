@@ -15,7 +15,7 @@ def decode_token(token):
     return jwt.decode(token, SECRET, algorithms=["HS256"])
 
 
-def create_ics_file(data: dict, templates, save_dir="calendar_events") -> str:
+def create_ics_file(data: dict, templates, out_path: Path) -> str:
     # Parse dates
     start = datetime.datetime.strptime(data["From_date"], "%d/%m/%Y %H:%M:%S")
     end = datetime.datetime.strptime(data["to_date"], "%d/%m/%Y %H:%M:%S")
@@ -52,14 +52,8 @@ END:VCALENDAR
 
     # Ensure CRLF line endings
     ics_content = ics_content.replace('\n', '\r\n')
-
-    # Save file
-    Path(save_dir).mkdir(parents=True, exist_ok=True)
-    file_path = f"{save_dir}/event_{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}.ics"
-    with open(file_path, "w", encoding="utf-8", newline='') as f:
-        f.write(ics_content)
-
-    return file_path
+    out_path.write_text(ics_content, encoding="utf-8", newline='')
+    
     
 def number_to_wa_chat_id(raw_number: str) -> str:
     normalized_number = normalize_whatsapp_number(raw_number)
