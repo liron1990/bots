@@ -5,6 +5,7 @@ from .appointment_fetcher import AppointmentFetcher
 from app.common.iservice import IService
 from app.common.config_yaml_manager import ConfigYamlManager
 from users.app_config import Tor4uConfig
+from app.common.green_api import GreenApiFactory
 
 
 class Tor4YouService(IService):
@@ -16,7 +17,7 @@ class Tor4YouService(IService):
 
     def start(self):
         config = self.config_yaml_manager.get_config()
-        api = API.GreenAPI(config.GREEN_API_INSTANCE_ID, config.GREEN_API_TOKEN_ID)
+        api: API.GreenAPI = GreenApiFactory.create(config.GREEN_API_INSTANCE_ID, config.GREEN_API_TOKEN_ID)
         self.dispatcher = MessageDispatcher(api, self.config_yaml_manager, self.app_config)
         self.fetcher = AppointmentFetcher(on_new_appointments=self.dispatcher.handle_new_appointments, tor4u_key=config.TOR_KEY, interval=1800)
 
