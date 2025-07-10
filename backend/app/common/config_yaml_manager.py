@@ -1,7 +1,7 @@
 import os
 import yaml
 import threading
-from app.utils.config import Config
+from app.common.tor4u.config import Config
 from app.utils.logger import logger  # Make sure logger is initialized before using
 from app.common.messages import TemplateMerger
 

@@ -6,9 +6,8 @@ from .utils import get_template_messages, enrich_appointment_data, should_filter
 
 from whatsapp_api_client_python.API import GreenApi
 from whatsapp_api_client_python import API
-from app.webapp.config import Config
+from app.common.tor4u.config import Config
 from users.app_config import Tor4uConfig
-from pathlib import Path
 from app.utils.temp_file import temp_path
 from app.common.green_api import GreenApiFactory
 

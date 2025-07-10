@@ -6,7 +6,7 @@ import glob
 import pytz
 
 from whatsapp_api_client_python import API
-from app.webapp.config import Config
+from app.common.tor4u.config import Config
 from app.utils.utils import normalize_whatsapp_number
 from app.utils.logger import logger
 from .utils import should_filter, enrich_appointment_data, get_template_messages

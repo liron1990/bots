@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.webapp.config import Config
+from app.common.tor4u.config import Config
 from typing import Dict, Any
 from app.utils.logger import logger
 from app.common.messages import TemplateMerger
