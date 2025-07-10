@@ -3,6 +3,7 @@ from pathlib import Path
 from filelock import FileLock
 from typing import Dict
 from jsonschema import validate
+import uuid
 
 from app.common.config_yaml_manager import ConfigYamlManager
 from .app_config import Tor4uConfig, BotConfig
@@ -168,3 +169,29 @@ class Users:
         schema = self.get_users_schema()
         validate(instance=data, schema=schema)
         self._write_locked(self.users_list_path, data)
+
+    def add_user(self, user_name: str, admin: bool = False):
+            self._load_users()
+
+            if user_name in self.users:
+                raise ValueError("User already exists")
+
+            user_guid = str(uuid.uuid4())
+            self.users[user_name] = {
+                "guid": user_guid,
+                "active": True,
+                "admin": admin,
+                "services": {}
+            }
+            self.guid_to_user[user_guid] = user_name
+            self.save()
+            return user_guid
+
+    def add_service_to_user(self, user_name: str, service_name: str, active: bool = False):
+        self._load_users()
+
+        if user_name not in self.users:
+            raise ValueError("User not found")
+
+        self.users[user_name].setdefault("services", {})[service_name] = {"active": active}
+        self.save()

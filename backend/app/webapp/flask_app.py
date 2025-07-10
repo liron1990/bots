@@ -3,17 +3,14 @@
 from flask import Flask, send_from_directory, jsonify, request
 from pathlib import Path
 from flask_cors import CORS
-import os
 import json
-import atexit
-from app.common.config_yaml_manager import ConfigYamlManager
 from app.utils.yaml_manager import YamlManager
 from app.common.tor4u.webhook_handler import WebhookHandler
 from users.app_config import AppConfig, BotConfig, Tor4uConfig
 from .auth import auth_bp, jwt_required, get_user_id_from_request
 from app.utils.logger import setup_logger
 import logging
-from .admin_api import admin_api
+from .admin.admin_api import admin_api
 from users.users import Users
 
 app_config = AppConfig("services", "webapp")
