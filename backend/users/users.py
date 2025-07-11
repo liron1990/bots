@@ -27,6 +27,8 @@ class Users:
                 return json.load(f)
 
     def _write_locked(self, path: Path, data: Dict):
+        schema = self.get_users_schema()
+        validate(instance=data, schema=schema)
         with FileLock(self.users_lock_path):
             with path.open("w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -166,8 +168,6 @@ class Users:
             return json.load(f)
 
     def update_users_data(self, data: Dict):
-        schema = self.get_users_schema()
-        validate(instance=data, schema=schema)
         self._write_locked(self.users_list_path, data)
 
     def add_user(self, user_name: str, admin: bool = False):
