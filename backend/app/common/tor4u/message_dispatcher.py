@@ -11,12 +11,11 @@ from app.utils.utils import normalize_whatsapp_number
 from app.utils.logger import logger
 from .utils import should_filter, enrich_appointment_data, get_template_messages
 from app.common.config_yaml_manager import ConfigYamlManager
-from users.app_config import Tor4uConfig
+from users.user_paths import Tor4Paths
 
 class MessageDispatcher:
-    def __init__(self, api: API.GreenAPI, yaml_manager: ConfigYamlManager, config: Tor4uConfig):
-        self.config: Tor4uConfig = config
-        self._sent_file_prefix = config.products_path / "sent_tasks" 
+    def __init__(self, api: API.GreenAPI, yaml_manager: ConfigYamlManager, paths: Tor4Paths):
+        self._sent_file_prefix = paths.products_path / "sent_tasks" 
         self.api = api
         self.config_manager = yaml_manager
         self._tasks = {}  # key: "{id}_before"/"{id}_after", value: dict with message, number, send_time, etc.

@@ -1,11 +1,11 @@
 import json
 import time
 import uuid
-from users.app_config import AppConfig
-app_config = AppConfig("services", "management")
+from users.user_paths import Paths
+app_paths = Paths("services", "management", make_dirs=True)
 
 class ServicesServerPathes:
-    MANAGEMENT_DIR = app_config.products_path
+    MANAGEMENT_DIR = app_paths.products_path
     STATE_FILE = MANAGEMENT_DIR / "state.json"
     REQUESTS_DIR = MANAGEMENT_DIR / "requests"
     RESPONSE_DIR = MANAGEMENT_DIR / "responses"

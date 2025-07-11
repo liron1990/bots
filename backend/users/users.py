@@ -6,7 +6,7 @@ from jsonschema import validate
 import uuid
 
 from app.common.config_yaml_manager import ConfigYamlManager
-from .app_config import Tor4uConfig, BotConfig
+from .user_paths import Tor4Paths, BotPaths
 from app.bot.bot_service import BotService
 from app.common.tor4u.tor4u_service import Tor4YouService
 
@@ -90,7 +90,7 @@ class Users:
     def get_config_yaml_manager(self, guid: str) -> ConfigYamlManager:
         self._load_users()
         user_name = self.get_user(guid)
-        cfg = Tor4uConfig(user_name)
+        cfg = Tor4Paths(user_name)
         return ConfigYamlManager(cfg.config_path, cfg.data_yaml_path)
 
     def get_services(self, user_name: str):
@@ -137,8 +137,8 @@ class Users:
     def get_active_services(self):
         self._load_users()
         SERVICE_CLASS_MAP = {
-            "tor4u": (Tor4YouService, Tor4uConfig),
-            "bot": (BotService, BotConfig),
+            "tor4u": (Tor4YouService, Tor4Paths),
+            "bot": (BotService, BotPaths),
         }
         active_services = []
 

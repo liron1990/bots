@@ -7,13 +7,13 @@ from .utils import get_template_messages, enrich_appointment_data, should_filter
 from whatsapp_api_client_python.API import GreenApi
 from whatsapp_api_client_python import API
 from app.common.tor4u.config import Config
-from users.app_config import Tor4uConfig
+from users.user_paths import Tor4Paths
 from app.utils.temp_file import temp_path
 from app.common.green_api import GreenApiFactory
 
 class WebhookHandler:
     def __init__(self, user_name: str):
-        conf = Tor4uConfig(user_name)
+        conf = Tor4Paths(user_name, make_dirs=True)
         self.yaml_manager: ConfigYamlManager = ConfigYamlManager(conf.config_path, conf.data_yaml_path)
         config = self.yaml_manager.get_config()
         self.green_api: GreenApi = GreenApiFactory.create(config.GREEN_API_INSTANCE_ID, config.GREEN_API_TOKEN_ID)

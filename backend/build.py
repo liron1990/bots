@@ -1,9 +1,9 @@
 import shutil
 import sys
 from pathlib import Path
-from users.app_config import AppConfig
+from users.user_paths import Paths
 
-app_config = AppConfig("services", "webapp")
+app_paths = Paths("services", "webapp", make_dirs=True)
 
 def copy_py_files(src: Path, dst: Path):
     for item in src.iterdir():

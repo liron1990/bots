@@ -2,7 +2,7 @@ import threading
 import multiprocessing
 import time
 from app.common.iservice import IService
-from users.app_config import BotConfig
+from users.user_paths import BotPaths
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from pathlib import Path
@@ -37,7 +37,7 @@ class PromptChangeHandler(FileSystemEventHandler):
             self.restart_event.set()
 
 class BotService(IService):
-    def __init__(self, bot_config: BotConfig):
+    def __init__(self, bot_config: BotPaths):
         self.bot_config = bot_config
         self._main_proc = None
         self._watcher_thread = None

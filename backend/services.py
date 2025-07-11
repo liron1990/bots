@@ -7,7 +7,7 @@ from app.common.services_client import ServicesServerPathes
 from app.common.iservice import IService
 from app.common.tor4u.tor4u_service import Tor4YouService
 from app.bot.bot_service import BotService
-from users.app_config import AppConfig, BotConfig, Tor4uConfig
+from users.user_paths import Paths, BotPaths, Tor4Paths
 from app.utils.logger import setup_logger, logger
 from users.users import Users
 import logging
@@ -22,10 +22,10 @@ service_processes = {}
 service_shutdown_events = {}
 service_lock = threading.Lock()
 
-def run_service(service_cls, shutdown_event, app_config):
+def run_service(service_cls, shutdown_event, app_paths):
     logger.info(f"Starting service: {service_cls.__name__}")
-    setup_logger(service_cls.__name__, log_dir=app_config.products_path / "logs", level=logging.DEBUG)
-    service = service_cls(app_config)
+    setup_logger(service_cls.__name__, log_dir=app_paths.products_path / "logs", level=logging.DEBUG)
+    service = service_cls(app_paths)
     service.start()
     try:
         while not shutdown_event.is_set():
@@ -151,8 +151,8 @@ if __name__ == '__main__':
     except RuntimeError:
         pass
 
-    app_config = AppConfig("services")
-    setup_logger("services", log_dir=app_config.logs_path)
+    app_paths = Paths("services", make_dirs=True)
+    setup_logger("services", log_dir=app_paths.logs_path)
 
     # Start management loop in a background thread
     threading.Thread(target=management_loop, daemon=True).start()

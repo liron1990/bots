@@ -5,15 +5,15 @@ import json
 from pathlib import Path
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import redirect
-from users.app_config import AppConfig
+from users.user_paths import Paths
 from users.users import Users
 
 SECRET = "gsdfW#@$@#sdsc34"  # use env var in prod
 
 auth_bp = Blueprint("auth", __name__)
 
-app_config = AppConfig("services")
-USERS_FILE = app_config.user_data_path / "users_auth.json"
+app_paths = Paths("services", make_dirs=True)
+USERS_FILE = app_paths.user_data_path / "users_auth.json"
 
 def load_users():
     if USERS_FILE.exists():

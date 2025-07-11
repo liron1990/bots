@@ -13,7 +13,7 @@ from whatsapp_chatbot_python import GreenAPIBot, Notification
 from whatsapp_chatbot_python.filters import TEXT_TYPES
 from whatsapp_chatgpt_python import WhatsappGptBot
 from yaml import safe_load
-from users.app_config import BotConfig
+from users.user_paths import BotPaths
 
 from app.bot.internal.GptProcess import GPTProcessingContext
 from app.bot.internal.config import load_config, Config
@@ -25,7 +25,7 @@ from app.bot.internal.utils import (
     sender_state_data_updater,
     get_first_name, LAST_INTERACTION_KEY, get_state, get_sender_printable, send_lead_to_biz1,
 )
-bot_config = BotConfig("the_maze")
+bot_config = BotPaths("the_maze", make_dirs=True)
 RELOAD_INTERVAL = 10
 
 config: Config = load_config(str(bot_config.config_path))
