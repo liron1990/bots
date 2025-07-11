@@ -33,6 +33,34 @@ def get_token_from_header():
         return auth_header.split(" ")[1]
     return None
 
+def get_user_id_from_token():
+    token = get_token_from_header()
+    if not token:
+        return None
+    try:
+        payload = decode_token(token)
+        return payload.get("user_id")
+    except:
+        return None
+
+def user_or_admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token_user_id = get_user_id_from_token()
+        url_user_id = kwargs.get("user_id")
+
+        if not token_user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        users = Users()
+
+        if token_user_id != url_user_id and not users.is_admin(token_user_id):
+            return jsonify({"error": "Forbidden"}), 403
+
+        request.user_id = url_user_id
+        return f(*args, **kwargs)
+    return decorated
+
 def jwt_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):

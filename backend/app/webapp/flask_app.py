@@ -11,6 +11,7 @@ from .auth import auth_bp, jwt_required, get_user_id_from_request
 from app.utils.logger import setup_logger
 import logging
 from .admin.admin_api import admin_api
+from .users_config.config_api import users_api
 from users.users import Users
 
 app_paths = Paths("services", "webapp", make_dirs=True)
@@ -20,21 +21,11 @@ flask_app = Flask(__name__, static_folder=str(app_paths.programs_dir / "static")
 CORS(flask_app)
 
 
-def get_bot_config() -> BotPaths:
-    user = get_user_id_from_request()
-    if not user:
-        return None
-    return BotPaths(user)
-
-def get_tor4u_config() -> Tor4Paths:
-    user = get_user_id_from_request()
-    if not user:
-        return None
-    return Tor4Paths(user)
 
 # Register JWT-based auth routes
 flask_app.register_blueprint(auth_bp, url_prefix="/api")
 flask_app.register_blueprint(admin_api)  # Register admin API
+flask_app.register_blueprint(users_api)  # Register users API
 
 
 handlers = {"the_maze": WebhookHandler("the_maze")}
@@ -86,76 +77,4 @@ def serve(path):
     else:
         return send_from_directory(flask_app.static_folder, 'index.html')
 
-
-def handle_yaml_messages(config, method):
-    if not config:
-        return jsonify({'error': 'Unauthorized'}), 401
-    manager = YamlManager(config.data_yaml_path)
-    if method == 'GET':
-        if not config.data_yaml_path.exists():
-            return jsonify({'error': 'File not found'}), 404
-        data, err = manager.load()
-        if err:
-            return jsonify({'error': err}), 400
-        return jsonify(data)
-    elif method == 'POST':
-        original_yaml, err = manager.load()
-        if err:
-            return jsonify({'error': err}), 400
-        new_data = request.json
-
-        key_check_passed, changes = manager.check_key_structure(original_yaml, new_data)
-        if not key_check_passed:
-            for change in changes:
-                print(change)
-            return jsonify({'error': 'Keys/structure cannot be changed.'}), 400
-
-        manager.update_values_only(original_yaml, new_data)
-        success, err = manager.dump(original_yaml)
-        if not success:
-            return jsonify({'error': err}), 400
-        return jsonify({'success': True})
-
-@flask_app.route('/api/bot_messages', methods=['GET', 'POST'])
-@jwt_required
-def bot_messages():
-    bot_config = get_bot_config()
-    return handle_yaml_messages(bot_config, request.method)
-
-@flask_app.route('/api/tor4u_messages', methods=['GET', 'POST'])
-@jwt_required
-def tor4u_messages():
-    tor4u_config = get_tor4u_config()
-    return handle_yaml_messages(tor4u_config, request.method)
-
-@flask_app.route('/api/prompt', methods=['GET', 'POST'])
-@jwt_required
-def prompt_file():
-    bot_config = get_bot_config()
-    if not bot_config:
-        return jsonify({'error': 'Unauthorized'}), 401
-    if request.method == 'GET':
-        if not bot_config.prompt_path.exists():
-            return jsonify({'prompt': ''})
-        return jsonify({'prompt': bot_config.prompt_path.read_text(encoding='utf-8')})
-    else:
-        data = request.json
-        prompt = data.get('prompt', '')
-        bot_config.prompt_path.write_text(prompt, encoding='utf-8')
-        return jsonify({'success': True})
-
-@flask_app.route('/api/settings', methods=['GET', 'POST'])
-@jwt_required
-def user_settings():
-    bot_config = get_bot_config()
-    if not bot_config:
-        return jsonify({'error': 'Unauthorized'}), 401
-    if request.method == 'GET':
-        if not bot_config.config_path.exists():
-            return jsonify({})
-        return jsonify(json.loads(bot_config.config_path.read_text(encoding='utf-8')))
-    else:
-        data = request.json
-        bot_config.config_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
-        return jsonify({'success': True})
 
